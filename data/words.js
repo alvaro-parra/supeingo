@@ -37,7 +37,7 @@
     { word: "PERRO", syllables: ["PE", "RRO"], emoji: "🐶", decoys: ["RO", "LO", "LLO"] },
     { word: "RANA",  syllables: ["RA", "NA"],  emoji: "🐸", decoys: ["LA", "MA"] },
     { word: "VACA",  syllables: ["VA", "CA"],  emoji: "🐮", decoys: ["BA", "KA"] },
-    { word: "MESA",  syllables: ["ME", "SA"],  emoji: "🪑", decoys: ["ZA"] },
+    { word: "SILLA", syllables: ["SI", "LLA"], emoji: "🪑", decoys: ["ZI", "YA"] },
     { word: "OJO",   syllables: ["O", "JO"],   emoji: "👁️", decoys: ["HO", "GO"] },
     { word: "BOCA",  syllables: ["BO", "CA"],  emoji: "👄", decoys: ["VO", "KA"] },
     { word: "HOJA",  syllables: ["HO", "JA"],  emoji: "🍃", decoys: ["O", "GA"] },
