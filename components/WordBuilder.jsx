@@ -7,6 +7,55 @@
 
 const SESSION_SIZE = 10;
 
+// ──────────────────────────────────────────────────────────────
+// Feedback no-visual: audio + vibración háptica.
+// Refuerza el resultado para niños con baja visión o daltonismo,
+// y respeta `prefers-reduced-motion` (que también silencia el audio).
+// ──────────────────────────────────────────────────────────────
+let _audioCtx = null;
+function playFeedback(kind) {
+  // Reduced motion implica también “sin chispitas” — silenciamos audio.
+  const reduced = typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Haptics: corto al acertar, patrón doble al fallar
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate(kind === "correct" ? 40 : [60, 40, 60]);
+    }
+  } catch (e) { /* noop */ }
+  if (reduced) return;
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
+    if (ctx.state === "suspended") ctx.resume();
+    const now = ctx.currentTime;
+    // Notas en sine + gain envelope corto. Volumen bajo.
+    // Sonido suave: triangle (más cálido que sine), volumen muy bajo,
+    // ataque y caída largos para evitar el "click" duro al inicio.
+    const isCorrect = kind === "correct";
+    // Correcto: dos notas musicales (Mi5 → Sol5) con caída larga, tipo campanilla suave.
+    // Error: descenso corto en triangle a frecuencia baja.
+    const tones = isCorrect
+      ? [{ f: 659, t: 0,    dur: 0.32 }, { f: 784, t: 0.09, dur: 0.36 }]
+      : [{ f: 280, t: 0,    dur: 0.18 }, { f: 200, t: 0.08, dur: 0.20 }];
+    const peak = isCorrect ? 0.08 : 0.18;
+    tones.forEach(({ f, t, dur }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = isCorrect ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(f, now + t);
+      gain.gain.setValueAtTime(0.0001, now + t);
+      // Ataque suave (~30ms) en lugar de instantáneo
+      gain.gain.exponentialRampToValueAtTime(peak, now + t + 0.03);
+      // Caída larga para que no resulte "punzante"
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + t + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + dur + 0.02);
+    });
+  } catch (e) { /* sin audio = sin audio */ }
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -61,19 +110,34 @@ function WordBuilder({ onBack, exampleWord }) {
   const [completed, setCompleted] = useState([]);
   const [attempts, setAttempts] = useState(1); // intentos para la palabra actual
 
-  // Sílabas distractoras: tomamos la palabra correcta + 2 sílabas extras
+  // Banco de sílabas: SIEMPRE 9 fichas en el banco.
+  //  - Correctas (todas las de la palabra).
+  //  - Decoys obligatorias declaradas en data/words.js (parejas confusas
+  //    como LE/RE, BA/VA, J/G…). Aparecen siempre que esta palabra salga.
+  //  - El resto se rellena con sílabas al azar de otras palabras hasta 9.
+  const POOL_SIZE = 9;
   const pool = useMemo(() => {
     const correct = target.syllables;
+    const decoys = (target.decoys || []).filter(s => !correct.includes(s));
+    const fixed = [...correct, ...decoys];
+    const fixedSet = new Set(fixed);
+    // Candidatas para relleno: sílabas de OTRAS palabras que no estén ya en el banco.
     const others = allWords
       .filter(w => w.word !== target.word)
       .flatMap(w => w.syllables)
-      .filter(s => !correct.includes(s));
-    const distract = [];
-    while (distract.length < 2 && others.length > 0) {
-      const pick = others.splice(Math.floor(Math.random() * others.length), 1)[0];
-      if (!distract.includes(pick)) distract.push(pick);
+      .filter(s => !fixedSet.has(s));
+    // Barajamos `others` y vamos cogiendo únicas hasta llegar a POOL_SIZE.
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]];
     }
-    const all = [...correct, ...distract];
+    const all = [...fixed];
+    const seen = new Set(fixed);
+    for (const s of others) {
+      if (all.length >= POOL_SIZE) break;
+      if (!seen.has(s)) { all.push(s); seen.add(s); }
+    }
+    // Barajado final para que las correctas no salgan agrupadas al inicio.
     for (let i = all.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [all[i], all[j]] = [all[j], all[i]];
@@ -86,6 +150,11 @@ function WordBuilder({ onBack, exampleWord }) {
   const [status, setStatus] = useState("idle"); // idle | correct | wrong | flying
   const [confettiOn, setConfettiOn] = useState(false);
   const [flyingWord, setFlyingWord] = useState(null); // { word, emoji, syllables } durante la animación
+  // Sílabas (por id de pool) ocultadas para reducir dificultad tras 3 fallos.
+  // Se resetea al cambiar de palabra. Empezamos a esconder a partir del 4º intento.
+  const [hiddenIds, setHiddenIds] = useState(new Set());
+  // Reset al cambiar de palabra: dificultad arranca de cero en cada palabra nueva.
+  useEffect(() => { setHiddenIds(new Set()); }, [target.word]);
 
   // Speak target on load — esperamos a que el motor TTS esté caliente
   // antes del primer disparo, si no la primera palabra de la sesión sale
@@ -108,13 +177,13 @@ function WordBuilder({ onBack, exampleWord }) {
   }, [target.word]);
 
   const placedSyllables = placed.map(id => pool.find(p => p.id === id)?.syllable);
-  const isComplete = placed.length === target.syllables.length;
+  const hasPlaced = placed.length > 0;
 
   const handlePick = (id) => {
     if (status !== "idle") return;
     if (placed.includes(id)) {
       setPlaced(placed.filter(x => x !== id));
-    } else if (placed.length < target.syllables.length) {
+    } else {
       setPlaced([...placed, id]);
     }
   };
@@ -127,9 +196,10 @@ function WordBuilder({ onBack, exampleWord }) {
   };
 
   const handleCheck = () => {
-    if (status !== "idle" || !isComplete) return;
+    if (status !== "idle" || !hasPlaced) return;
     const ok = placedSyllables.join("") === target.syllables.join("");
     if (ok) {
+      playFeedback("correct");
       setStatus("correct");
       setConfettiOn(true);
       setTimeout(() => speak(target.word), 250);
@@ -159,8 +229,25 @@ function WordBuilder({ onBack, exampleWord }) {
         setStatus("idle");
       }, 1500);
     } else {
+      playFeedback("wrong");
       setStatus("wrong");
-      setAttempts(a => a + 1);
+      const nextAttempts = attempts + 1;
+      setAttempts(nextAttempts);
+      // A partir del 4º intento (= tras 3 fallos), escondemos una sílaba
+      // incorrecta para bajar la dificultad. Si ya no quedan incorrectas,
+      // dejamos el banco como está y el niño sigue intentando ad infinitum.
+      if (nextAttempts >= 4) {
+        setHiddenIds(prev => {
+          const wrong = pool.filter(p =>
+            !target.syllables.includes(p.syllable) && !prev.has(p.id)
+          );
+          if (wrong.length === 0) return prev;
+          const pick = wrong[Math.floor(Math.random() * wrong.length)];
+          const next = new Set(prev);
+          next.add(pick.id);
+          return next;
+        });
+      }
       setTimeout(() => {
         setPlaced([]);
         setStatus("idle");
@@ -198,47 +285,33 @@ function WordBuilder({ onBack, exampleWord }) {
       <div className="bg-decor"/>
 
       <ScreenHeader
-        title="Forma la palabra"
+        title="Forma palabras"
         onBack={onBack}
         right={
           <SessionProgress current={idx} total={session.length}/>
         }
       />
 
-      {/* Pista contextual con la mascota */}
+      {/* Imagen + altavoz — fila compacta para no comer alto en móvil */}
       <div style={{
-        margin: "var(--space-3) var(--space-4) 0",
-        position: "relative", zIndex: 2,
-      }}>
-        <MascotHint
-          size={56}
-          mood={status === "correct" ? "cheer" : status === "wrong" ? "sad" : "happy"}
-        >
-          {status === "correct" ? "¡Lo conseguiste!"
-            : status === "wrong" ? "Casi, prueba otra vez"
-            : "Pulsa las sílabas en orden para formar la palabra"}
-        </MascotHint>
-      </div>
-
-      {/* Imagen + altavoz */}
-      <div style={{
-        margin: "var(--space-3) var(--space-5) var(--space-5)",
+        margin: "var(--space-3) var(--space-4) var(--space-3)",
         background: "var(--surface)",
         border: "3px solid var(--ink)",
         borderRadius: "var(--r-xl)",
         boxShadow: "var(--shadow-md)",
-        padding: "var(--space-5)",
+        padding: "var(--space-3) var(--space-4)",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         alignItems: "center",
-        gap: "var(--space-3)",
+        justifyContent: "center",
+        gap: "var(--space-4)",
         position: "relative",
         zIndex: 2,
       }}>
         <div
           id="wb-emoji"
           style={{
-            fontSize: "calc(96px * var(--scale))",
+            fontSize: "calc(64px * var(--scale))",
             lineHeight: 1,
             animation: status === "correct" ? "pop 600ms ease-out" : "bob 2.4s ease-in-out infinite",
             filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.08))",
@@ -247,31 +320,16 @@ function WordBuilder({ onBack, exampleWord }) {
           }}
           aria-hidden
         >{target.emoji}</div>
-        <SpeakButton text={target.word} size={56}/>
+        <SpeakButton text={target.word} size={48}/>
       </div>
 
-      {/* Slots */}
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        gap: "var(--space-2)",
-        flexWrap: "wrap",
-        padding: "0 var(--space-4)",
-        position: "relative",
-        zIndex: 2,
-        animation: status === "wrong" ? "shake 360ms ease-in-out" : "none",
-      }}>
-        {target.syllables.map((s, i) => (
-          <Slot
-            key={i}
-            value={placed[i] !== undefined ? pool.find(p => p.id === placed[i])?.syllable : null}
-            onClick={() => handleSlotClick(i)}
-            status={status}
-            isCorrect={status === "correct" || status === "flying"}
-            slotWidth={Math.max(60, 380 / target.syllables.length)}
-          />
-        ))}
-      </div>
+      {/* Zona de respuesta — sin pistas sobre cuántas sílabas hay */}
+      <AnswerArea
+        placedSyllables={placedSyllables}
+        onRemove={handleSlotClick}
+        status={status}
+        isCorrect={status === "correct" || status === "flying"}
+      />
 
       {/* Pista de progreso debajo de los slots */}
       <div style={{
@@ -291,7 +349,7 @@ function WordBuilder({ onBack, exampleWord }) {
 
       {/* Banco de sílabas */}
       <div style={{
-        margin: "var(--space-5) var(--space-4) 0",
+        margin: "var(--space-3) var(--space-4) 0",
         padding: "var(--space-4)",
         background: "var(--bg-2)",
         border: "3px dashed var(--ink-faint)",
@@ -304,7 +362,7 @@ function WordBuilder({ onBack, exampleWord }) {
         zIndex: 2,
         minHeight: 100,
       }}>
-        {pool.map(p => (
+        {pool.filter(p => !hiddenIds.has(p.id)).map(p => (
           <SyllableTile
             key={p.id}
             syllable={p.syllable}
@@ -325,6 +383,7 @@ function WordBuilder({ onBack, exampleWord }) {
       }}>
         <ActionButton
           variant="ghost"
+          icon="clear"
           onClick={handleClear}
           disabled={placed.length === 0 || status !== "idle"}
         >
@@ -333,7 +392,7 @@ function WordBuilder({ onBack, exampleWord }) {
         <ActionButton
           variant="primary"
           onClick={handleCheck}
-          disabled={!isComplete || status !== "idle"}
+          disabled={!hasPlaced || status !== "idle"}
         >
           Comprobar
         </ActionButton>
@@ -414,9 +473,8 @@ function CompletedList({ items }) {
         letterSpacing: "0.08em",
       }}>
         <span aria-hidden>🌱</span>
-        <span>Tu colección</span>
+        <span>Acertadas</span>
         <span style={{
-          marginLeft: "auto",
           color: "var(--ink-faint)",
           fontWeight: 600,
           textTransform: "none",
@@ -434,14 +492,14 @@ function CompletedList({ items }) {
           justifyContent: "flex-start",
         }}>
         {items.map((it, i) => (
-          <CompletedChip key={`${it.word}-${i}`} item={it} isLatest={i === items.length - 1}/>
+          <CompletedChip key={`${it.word}-${i}`} item={it} isLatest={i === items.length - 1} showAttempts={false}/>
         ))}
       </div>
     </div>
   );
 }
 
-function CompletedChip({ item, isLatest }) {
+function CompletedChip({ item, isLatest, showAttempts = true }) {
   const { word, syllables, emoji, attempts } = item;
   const perfect = attempts === 1;
   return (
@@ -487,7 +545,9 @@ function CompletedChip({ item, isLatest }) {
           </React.Fragment>
         ))}
       </span>
-      <AttemptsBadge attempts={attempts} perfect={perfect}/>
+      {showAttempts && (
+        <AttemptsBadge attempts={attempts} perfect={perfect}/>
+      )}
     </button>
   );
 }
@@ -656,10 +716,12 @@ function SessionComplete({ completed, onPlayAgain, onBack }) {
           display: "flex",
           flexWrap: "wrap",
           gap: "var(--space-3)",
-          justifyContent: "center",
+          // Lista lineal alineada a la izquierda — lee como inventario,
+          // más fácil de escanear que centrada.
+          justifyContent: "flex-start",
         }}>
           {completed.map((it, i) => (
-            <CompletedChip key={`${it.word}-${i}`} item={it}/>
+            <CompletedChip key={`${it.word}-${i}`} item={it} showAttempts={true}/>
           ))}
         </div>
       </div>
@@ -713,9 +775,78 @@ function Trophy({ size = 160 }) {
 }
 
 // ──────────────────────────────────────────────────────────────
+// AnswerArea — caja única que muestra las sílabas colocadas.
+// No revela cuántas sílabas tiene la palabra. Si el niño coloca
+// demasiadas, las fichas saltan a una segunda fila (la caja crece
+// hacia abajo). Sin medir nada: pura CSS con flex-wrap.
+// ──────────────────────────────────────────────────────────────
+function AnswerArea({ placedSyllables, onRemove, status, isCorrect }) {
+  const empty = placedSyllables.length === 0;
+  const borderColor = isCorrect ? "var(--ok)"
+    : status === "wrong" ? "var(--accent-strong)"
+    : "var(--ink-faint)";
+  // Discontinuo en estado neutro (vacío o construyendo); solo se vuelve
+  // continuo cuando hay feedback claro (correcto o error).
+  const solid = isCorrect || status === "wrong";
+  const bg = isCorrect ? "var(--ok-soft)" : "var(--surface)";
+
+  return (
+    <div style={{
+      margin: "0 var(--space-4)",
+      padding: "var(--space-2) var(--space-3)",
+      background: bg,
+      border: `3px ${solid ? "solid" : "dashed"} ${borderColor}`,
+      borderRadius: "var(--r-md)",
+      minHeight: 60,
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+      zIndex: 2,
+      animation: status === "wrong" ? "shake 360ms ease-in-out" : "none",
+      transition: "border-color 200ms ease, background 200ms ease",
+    }}>
+      {empty ? (
+        <span style={{
+          color: "var(--ink-faint)",
+          fontWeight: 600,
+          fontSize: "calc(15px * var(--scale))",
+          fontFamily: "Andika, Fredoka, sans-serif",
+        }}>
+          Pulsa una sílaba ↓
+        </span>
+      ) : (
+        placedSyllables.map((s, i) => (
+          <button
+            key={i}
+            onClick={() => onRemove(i)}
+            disabled={status !== "idle"}
+            style={{
+              padding: "6px 14px",
+              background: isCorrect ? "var(--ok-soft)" : "var(--surface)",
+              border: `3px solid ${borderColor}`,
+              borderRadius: "var(--r-md)",
+              fontSize: "calc(28px * var(--scale))",
+              fontWeight: 700,
+              color: "var(--ink)",
+              fontFamily: "Andika, Fredoka, sans-serif",
+              lineHeight: 1.1,
+              cursor: status === "idle" ? "pointer" : "default",
+              whiteSpace: "nowrap",
+            }}
+          >{s}</button>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────
 // Slot, SyllableTile, ActionButton — sin cambios estructurales
 // ──────────────────────────────────────────────────────────────
-function Slot({ value, onClick, status, isCorrect, slotWidth }) {
+function Slot({ value, onClick, status, isCorrect }) {
   const filled = value !== null && value !== undefined;
   const bg = isCorrect ? "var(--ok-soft)"
     : filled ? "var(--surface)"
@@ -728,8 +859,10 @@ function Slot({ value, onClick, status, isCorrect, slotWidth }) {
   return (
     <button onClick={onClick} disabled={!filled}
       style={{
-        minWidth: slotWidth,
-        height: 72,
+        flex: "1 1 0",
+        minWidth: 0,
+        maxWidth: 110,
+        height: 60,
         background: bg,
         border: `3px ${borderStyle} ${borderColor}`,
         borderRadius: "var(--r-md)",
@@ -775,9 +908,15 @@ function SyllableTile({ syllable, placed, onClick, disabled }) {
 
 function ActionButton({ children, onClick, disabled, variant = "primary", icon = "check" }) {
   const isPrimary = variant === "primary";
+  // Primario en azul-gris (no verde) para no chocar con el feedback
+  // "correcto" (verde) ni con el "error" (coral). Mejora la accesibilidad
+  // para daltónicos: el color del botón nunca se confunde con el resultado.
   const bg = disabled ? "var(--bg-2)"
-    : isPrimary ? "var(--ok)" : "var(--surface)";
-  const color = disabled ? "var(--ink-faint)" : "var(--ink)";
+    : isPrimary ? "var(--secondary-strong)" : "var(--surface)";
+  const color = disabled ? "var(--ink-faint)"
+    : isPrimary ? "#FFFDF7" : "var(--ink)";
+  // Stroke de iconos: hereda del color del texto para que se vea siempre.
+  const strokeColor = color;
   const shadow = disabled ? "0 2px 0 var(--ink-faint)" : "0 4px 0 var(--ink)";
 
   return (
@@ -826,22 +965,31 @@ function ActionButton({ children, onClick, disabled, variant = "primary", icon =
         e.currentTarget.style.boxShadow = "0 4px 0 var(--ink)";
       }}
     >
-      {isPrimary && !disabled && icon === "check" && (
+      {/* Icono SIEMPRE presente (también en disabled) — el icono es parte
+          de la identidad del botón. El color sigue al texto para que el
+          contraste sea correcto en cualquier estado. */}
+      {icon === "check" && (
         <svg viewBox="0 0 20 20" width={20} height={20} aria-hidden>
-          <path d="M 4 10 L 8 14 L 16 6" stroke="var(--ink)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M 4 10 L 8 14 L 16 6" stroke={strokeColor} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       )}
-      {isPrimary && !disabled && icon === "reload" && (
+      {icon === "reload" && (
         // Reload — flecha circular tipo "recargar página", abierta arriba a la derecha con punta.
         <svg viewBox="0 0 20 20" width={20} height={20} aria-hidden>
           <path
             d="M 16 4 L 16 8 L 12 8"
-            stroke="var(--ink)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"
+            stroke={strokeColor} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"
           />
           <path
             d="M 16 8 A 6 6 0 1 0 14.5 13.5"
-            stroke="var(--ink)" strokeWidth="2.5" fill="none" strokeLinecap="round"
+            stroke={strokeColor} strokeWidth="2.5" fill="none" strokeLinecap="round"
           />
+        </svg>
+      )}
+      {icon === "clear" && (
+        // Clear / Borrar — aspa simple, semantica de "quitar" sin connotación de error
+        <svg viewBox="0 0 20 20" width={20} height={20} aria-hidden>
+          <path d="M 5 5 L 15 15 M 15 5 L 5 15" stroke={strokeColor} strokeWidth="3" fill="none" strokeLinecap="round"/>
         </svg>
       )}
       {children}

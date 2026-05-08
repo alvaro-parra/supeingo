@@ -211,3 +211,13 @@ button:focus-visible {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--ink) !important;
 }
+
+/* Accesibilidad: respetar la preferencia del SO de reducir movimiento.
+   Pause el bob, shake, pop, fly-to-list, chip-in, trophy-in, drift, wave.
+   Mantenemos transiciones cortas (color/opacidad) que comunican estado. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
