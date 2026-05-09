@@ -18,8 +18,19 @@ function _memShuffle(arr) {
   return a;
 }
 
-function _memBuildBoard(allEntries) {
-  const picks = _memShuffle(allEntries).slice(0, MEM_PAIRS);
+function _memBuildBoard(allEntries, forced) {
+  // `forced` (debug): si se pasa una palabra, garantizamos que esté
+  // entre las parejas del tablero. Útil para reproducir bugs sobre una
+  // palabra concreta sin tener que reiniciar la sesión hasta que salga.
+  let picks;
+  const forcedEntry = forced && allEntries.find(w => w.word === forced);
+  if (forcedEntry) {
+    const rest = _memShuffle(allEntries.filter(w => w.word !== forced))
+      .slice(0, MEM_PAIRS - 1);
+    picks = _memShuffle([forcedEntry, ...rest]);
+  } else {
+    picks = _memShuffle(allEntries).slice(0, MEM_PAIRS);
+  }
   const cards = [];
   picks.forEach((entry, i) => {
     cards.push({ id: i * 2,     entry, flipped: false, matched: false });
@@ -28,7 +39,7 @@ function _memBuildBoard(allEntries) {
   return _memShuffle(cards);
 }
 
-function Memory({ onBack }) {
+function Memory({ onBack, debug = false }) {
   const allEntries = useMemo(() => {
     const cats = new Set(MEM_CATEGORIES);
     return window.SUPEINGO_CONTENT.dictionary.filter(
@@ -36,11 +47,14 @@ function Memory({ onBack }) {
     );
   }, []);
 
+  // Palabra forzada en modo depuración — si está, garantiza que ese
+  // par concreto aparezca en el tablero al rebuild.
+  const [debugForced, setDebugForced] = useState(null);
   const [sessionSeed, setSessionSeed] = useState(0);
-  const [cards, setCards] = useState(() => _memBuildBoard(allEntries));
+  const [cards, setCards] = useState(() => _memBuildBoard(allEntries, debugForced));
   useEffect(() => {
-    setCards(_memBuildBoard(allEntries));
-  }, [sessionSeed, allEntries]);
+    setCards(_memBuildBoard(allEntries, debugForced));
+  }, [sessionSeed, allEntries, debugForced]);
 
   const [selected, setSelected] = useState([]);  // [cardId, cardId]
   const [completed, setCompleted] = useState([]);
@@ -237,6 +251,27 @@ function Memory({ onBack }) {
       <Confetti active={confettiOn}/>
       {completed.length > 0 && <CompletedList items={completed} total={MEM_PAIRS}/>}
       {flyingWord && <FlyingChip word={flyingWord}/>}
+
+      {/* Selector de palabra (debug) — solo si está activo el modo
+          depuración en Ajustes. Reusa el panel de WordBuilder. La
+          palabra elegida queda garantizada como una de las 6 parejas
+          al rebarajar; cambiarla resetea la sesión. */}
+      {debug && (
+        <DebugWordPicker
+          allWords={allEntries}
+          current={debugForced}
+          onPick={(w) => {
+            setDebugForced(w);
+            setSelected([]);
+            setCompleted([]);
+            setStatus("idle");
+            setReveal(null);
+            setFlyingWord(null);
+            setConfettiOn(false);
+            setSessionSeed(s => s + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -264,8 +299,10 @@ function MatchReveal({ entry }) {
   // bastante; las muy largas (HELICÓPTERO, MURCIÉLAGO ≥15) bajan más
   // para que no toquen los bordes en móvil.
   const _vlen = entry.word.length + Math.max(0, entry.syllables.length - 1);
-  const fontPx = _vlen <= 8 ? 36 : _vlen <= 11 ? 30 : _vlen <= 14 ? 24 : 20;
-  const imgSize = _vlen <= 14 ? 72 : 56;
+  const fontPx = _vlen <= 8 ? 34 : _vlen <= 11 ? 28 : _vlen <= 14 ? 22 : 18;
+  // Imagen más pequeña en cuanto la palabra empieza a apretar (>11
+  // chars visuales) — libera ancho para que el texto no se salga.
+  const imgSize = _vlen <= 11 ? 72 : 56;
   return (
     <div
       aria-hidden
@@ -301,12 +338,14 @@ function MatchReveal({ entry }) {
           fontFamily: "Andika, Fredoka, sans-serif",
           fontWeight: 700,
           fontSize: `calc(${fontPx}px * var(--scale))`,
-          letterSpacing: "0.03em",
+          letterSpacing: "0.02em",
           color: "var(--ink)",
           lineHeight: 1.15,
           // Permitimos wrap por si aun así no cabe (palabras muy largas
           // con escala grande). Se parte entre sílabas, nunca dentro.
-          display: "inline-flex",
+          // OJO: usar `flex` (no `inline-flex`) — con `inline-flex` el
+          // span no respeta `flex: 1` del padre y desborda.
+          display: "flex",
           flexWrap: "wrap",
           alignItems: "baseline",
           gap: "0 0.05em",

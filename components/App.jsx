@@ -39,7 +39,7 @@ function App() {
   } else if (route === "find") {
     screen = <FindPicture onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   } else if (route === "memory") {
-    screen = <Memory onBack={() => setRoute("play")}/>;
+    screen = <Memory onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   }
 
   const showChrome = route !== "settings";
