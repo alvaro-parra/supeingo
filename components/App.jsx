@@ -7,7 +7,7 @@ const HELP_HINTS = {
   builder: "Mira la imagen y escucha la palabra. Pulsa las sílabas en orden para formarla.",
   find:    "Mira las sílabas y escucha la palabra. Toca el dibujo que coincide.",
   memory:  "Voltea dos cartas y busca las que son iguales.",
-  guess:   "Adivina la palabra. Cada vez que falles te damos pistas hasta que aciertes.",
+  guess:   "Forma la palabra con las sílabas. Pulsa la 🔍 si necesitas una pista.",
 };
 
 function App() {
@@ -43,7 +43,7 @@ function App() {
   } else if (route === "memory") {
     screen = <Memory onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   } else if (route === "guess") {
-    screen = <GuessWord onBack={() => setRoute("play")}/>;
+    screen = <GuessWord onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   }
 
   const showChrome = route !== "settings";

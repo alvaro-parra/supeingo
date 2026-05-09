@@ -69,16 +69,232 @@
       word:        { type: "string", required: true },
       sizeSmaller: { type: "array",  of: { type: "string" }, required: false },
       sizeLarger:  { type: "array",  of: { type: "string" }, required: false },
-      color:       { type: "string", required: false },
+      // `colors`: lista de uno o más colores (p.ej. SANDÍA: verde + rojo).
+      // En la pista 2 se renderizan N swatches + texto unido en español.
+      colors:      { type: "array",  of: { type: "string" }, required: false },
     },
   };
 
   const DATA = [
+    // ── Animales ─────────────────────────────────────────────
     {
       word: "TORTUGA",
-      sizeSmaller: ["ABEJA", "HORMIGA"],
-      sizeLarger:  ["CABALLO", "ELEFANTE"],
-      color: "verde",
+      sizeSmaller: ["ABEJA", "HORMIGA", "RATÓN", "CARACOL", "MARIPOSA"],
+      sizeLarger:  ["CABALLO", "ELEFANTE", "VACA", "OSO", "BALLENA"],
+      colors: ["verde"],
+    },
+    {
+      word: "ELEFANTE",
+      sizeSmaller: ["CABALLO", "VACA", "OSO", "LEÓN", "TIGRE", "CAMELLO", "CEBRA"],
+      sizeLarger:  ["BALLENA"],
+      colors: ["gris"],
+    },
+    {
+      word: "ABEJA",
+      sizeSmaller: ["HORMIGA"],
+      sizeLarger:  ["GATO", "PERRO", "RATÓN", "RANA", "CARACOL"],
+      colors: ["amarillo", "negro"],
+    },
+    {
+      word: "RANA",
+      sizeSmaller: ["HORMIGA", "ABEJA", "CARACOL", "MARIPOSA"],
+      sizeLarger:  ["GATO", "CABALLO", "PERRO", "OSO", "VACA"],
+      colors: ["verde"],
+    },
+    {
+      word: "CERDO",
+      sizeSmaller: ["GATO", "RANA", "PERRO", "GALLINA", "PATO", "ZORRO"],
+      sizeLarger:  ["VACA", "CABALLO", "OSO", "ELEFANTE", "JIRAFA", "CAMELLO"],
+      colors: ["rosa"],
+    },
+    {
+      word: "POLLITO",
+      sizeSmaller: ["ABEJA", "HORMIGA", "MARIPOSA", "RATÓN"],
+      sizeLarger:  ["GALLINA", "PATO", "GATO", "PERRO", "CONEJO"],
+      colors: ["amarillo"],
+    },
+    {
+      word: "JIRAFA",
+      sizeSmaller: ["CABALLO", "OSO", "VACA", "CAMELLO", "CEBRA", "LEÓN", "TIGRE"],
+      sizeLarger:  ["BALLENA"],
+      colors: ["amarillo", "marrón"],
+    },
+    {
+      word: "PINGÜINO",
+      sizeSmaller: ["PATO", "GALLINA", "GATO", "CONEJO"],
+      sizeLarger:  ["PERRO", "OSO", "CABRA", "OVEJA", "CERDO"],
+      colors: ["negro", "blanco"],
+    },
+    {
+      word: "BALLENA",
+      sizeSmaller: ["TIBURÓN", "DELFÍN", "ELEFANTE", "JIRAFA"],
+      // No hay nada más grande en el diccionario; se omite la pista 4.
+      colors: ["azul"],
+    },
+    {
+      word: "HORMIGA",
+      // No hay nada más pequeño en el diccionario; se omite la pista 3.
+      sizeLarger:  ["ABEJA", "MARIPOSA", "RATÓN", "CARACOL", "ARAÑA"],
+      colors: ["negro"],
+    },
+    {
+      word: "GATO",
+      // Sin colores: gatos varían demasiado (negro, blanco, naranja,
+      // gris, atigrado…) como para fijar uno solo.
+      sizeSmaller: ["HORMIGA", "RATÓN", "ABEJA", "CARACOL"],
+      sizeLarger:  ["PERRO", "OSO", "CABALLO", "VACA", "CERDO"],
+    },
+    {
+      word: "PERRO",
+      // Sin colores: razas muy variadas.
+      sizeSmaller: ["GATO", "RATÓN", "ABEJA", "CONEJO"],
+      sizeLarger:  ["OSO", "CABALLO", "VACA", "ELEFANTE"],
+    },
+    {
+      word: "VACA",
+      sizeSmaller: ["GATO", "PERRO", "OVEJA", "CABRA", "CERDO"],
+      sizeLarger:  ["ELEFANTE", "JIRAFA"],
+      colors: ["blanco", "negro"],
+    },
+    {
+      word: "OSO",
+      sizeSmaller: ["GATO", "PERRO", "ZORRO", "CONEJO"],
+      sizeLarger:  ["ELEFANTE", "JIRAFA"],
+      colors: ["marrón"],
+    },
+    {
+      word: "LEÓN",
+      sizeSmaller: ["GATO", "PERRO", "ZORRO", "CONEJO"],
+      sizeLarger:  ["ELEFANTE", "JIRAFA"],
+      colors: ["amarillo", "marrón"],
+    },
+    {
+      word: "TIGRE",
+      sizeSmaller: ["GATO", "PERRO", "ZORRO"],
+      sizeLarger:  ["ELEFANTE", "JIRAFA"],
+      colors: ["naranja", "negro"],
+    },
+    {
+      word: "RATÓN",
+      sizeSmaller: ["HORMIGA", "ABEJA", "CARACOL"],
+      sizeLarger:  ["GATO", "PERRO", "CONEJO", "RANA"],
+      colors: ["gris"],
+    },
+    {
+      word: "CARACOL",
+      sizeSmaller: ["HORMIGA", "ABEJA"],
+      sizeLarger:  ["GATO", "RATÓN", "RANA", "PATO"],
+      colors: ["marrón"],
+    },
+    {
+      word: "SERPIENTE",
+      sizeSmaller: ["HORMIGA", "RANA", "LAGARTO", "RATÓN"],
+      sizeLarger:  ["GATO", "PERRO", "CABALLO", "VACA"],
+      colors: ["verde", "marrón"],
+    },
+    {
+      word: "COCODRILO",
+      sizeSmaller: ["RANA", "GATO", "LAGARTO", "PERRO"],
+      sizeLarger:  ["ELEFANTE", "BALLENA"],
+      colors: ["verde"],
+    },
+
+    // ── Frutas y verduras ────────────────────────────────────
+    {
+      word: "MANZANA",
+      sizeSmaller: ["FRESA", "UVA", "CEREZA"],
+      sizeLarger:  ["SANDÍA", "MELÓN", "PIÑA", "COCO"],
+      colors: ["rojo"],
+    },
+    {
+      word: "PLÁTANO",
+      sizeSmaller: ["FRESA", "UVA", "CEREZA"],
+      sizeLarger:  ["SANDÍA", "MELÓN", "PIÑA", "COCO"],
+      colors: ["amarillo"],
+    },
+    {
+      word: "SANDÍA",
+      sizeSmaller: ["MANZANA", "NARANJA", "MELÓN", "PIÑA", "COCO", "MANGO", "AGUACATE"],
+      // No hay nada más grande en el diccionario; se omite la pista 4.
+      colors: ["verde", "rojo"],
+    },
+    {
+      word: "ZANAHORIA",
+      sizeSmaller: ["FRESA", "UVA", "CEREZA"],
+      sizeLarger:  ["SANDÍA", "MELÓN", "PIÑA", "COCO"],
+      colors: ["naranja"],
+    },
+    {
+      word: "BERENJENA",
+      sizeSmaller: ["FRESA", "UVA", "CEREZA", "KIWI"],
+      sizeLarger:  ["SANDÍA", "MELÓN", "PIÑA", "COCO"],
+      colors: ["morado"],
+    },
+    {
+      word: "UVA",
+      // Nada más pequeño en el diccionario; se omite la pista 3.
+      sizeLarger:  ["MANZANA", "FRESA", "NARANJA", "CEREZA", "TOMATE", "KIWI", "LIMÓN"],
+      colors: ["morado"],
+    },
+    {
+      word: "FRESA",
+      sizeSmaller: ["UVA", "CEREZA"],
+      sizeLarger:  ["MANZANA", "NARANJA", "TOMATE", "LIMÓN"],
+      colors: ["rojo"],
+    },
+    {
+      word: "NARANJA",
+      sizeSmaller: ["UVA", "FRESA", "CEREZA"],
+      sizeLarger:  ["MELÓN", "SANDÍA", "PIÑA", "COCO"],
+      colors: ["naranja"],
+    },
+    {
+      word: "LIMÓN",
+      sizeSmaller: ["UVA", "FRESA", "CEREZA"],
+      sizeLarger:  ["MELÓN", "SANDÍA", "PIÑA", "MANZANA"],
+      colors: ["amarillo"],
+    },
+    {
+      word: "CEREZA",
+      // Nada más pequeño en el diccionario; se omite la pista 3.
+      sizeLarger:  ["FRESA", "MANZANA", "NARANJA", "LIMÓN", "TOMATE"],
+      colors: ["rojo"],
+    },
+    {
+      word: "TOMATE",
+      sizeSmaller: ["UVA", "FRESA", "CEREZA"],
+      sizeLarger:  ["MELÓN", "SANDÍA", "PIÑA", "NARANJA", "BERENJENA"],
+      colors: ["rojo"],
+    },
+    {
+      word: "PEPINO",
+      sizeSmaller: ["UVA", "FRESA", "CEREZA", "TOMATE"],
+      sizeLarger:  ["SANDÍA", "PIÑA", "MELÓN", "BERENJENA"],
+      colors: ["verde"],
+    },
+    {
+      word: "LECHUGA",
+      sizeSmaller: ["FRESA", "UVA", "TOMATE"],
+      sizeLarger:  ["SANDÍA", "MELÓN", "PIÑA"],
+      colors: ["verde"],
+    },
+    {
+      word: "BRÓCOLI",
+      sizeSmaller: ["FRESA", "UVA", "CEREZA"],
+      sizeLarger:  ["LECHUGA", "SANDÍA", "MELÓN"],
+      colors: ["verde"],
+    },
+    {
+      word: "AGUACATE",
+      sizeSmaller: ["FRESA", "UVA", "CEREZA", "TOMATE"],
+      sizeLarger:  ["PIÑA", "MELÓN", "SANDÍA"],
+      colors: ["verde", "marrón"],
+    },
+    {
+      word: "PIÑA",
+      sizeSmaller: ["MANZANA", "PERA", "NARANJA", "LIMÓN", "AGUACATE"],
+      sizeLarger:  ["SANDÍA", "MELÓN"],
+      colors: ["amarillo", "marrón"],
     },
   ];
 
@@ -112,10 +328,12 @@
         }
       }
     }
-    // Comprobar colores válidos
+    // Comprobar colores válidos — todos los del array deben estar en la paleta.
     for (const e of DATA) {
-      if (e.color && !(e.color in COLOR_HEX)) {
-        console.error(`[supeingo:guessWords] ${e.word}: color "${e.color}" no está en la paleta soportada.`);
+      for (const c of (e.colors || [])) {
+        if (!(c in COLOR_HEX)) {
+          console.error(`[supeingo:guessWords] ${e.word}: color "${c}" no está en la paleta soportada.`);
+        }
       }
     }
   }

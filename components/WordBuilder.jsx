@@ -1232,6 +1232,12 @@ function ActionButton({ children, onClick, disabled, variant = "primary", icon =
           <path d="M 5 5 L 15 15 M 15 5 L 5 15" stroke={strokeColor} strokeWidth="3" fill="none" strokeLinecap="round"/>
         </svg>
       )}
+      {icon === "hint" && (
+        // Pista — emoji 🔍 para reforzar la metáfora visual del menú
+        // (GuessWord usa la lupa). Tamaño pequeño para no competir con
+        // los iconos SVG monocromos de los otros botones.
+        <span aria-hidden style={{ fontSize: 18, lineHeight: 1 }}>🔍</span>
+      )}
       {children}
     </button>
   );

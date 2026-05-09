@@ -6,9 +6,9 @@ function PlayMenu({ onBack, onPick }) {
   // varios juegos seguidos.
   const games = [
     { id: "builder", name: "Forma palabras",     subtitle: "Ordena las sílabas", color: "accent", emoji: "🧩", ready: true },
-    { id: "find",    name: "Busca el dibujo", subtitle: "Lee y elige",         color: "accent", emoji: "🔍", ready: true },
+    { id: "find",    name: "Busca el dibujo", subtitle: "Lee y elige",         color: "accent", emoji: "🎯", ready: true },
     { id: "memory",  name: "Memoria",        subtitle: "Empareja parejas",   color: "accent", emoji: "🃏", ready: true },
-    { id: "guess",   name: "Adivina la palabra", subtitle: "Pistas y sílabas", color: "accent", emoji: "🤔", ready: true },
+    { id: "guess",   name: "Adivina la palabra", subtitle: "Pistas y sílabas", color: "accent", emoji: "🔍", ready: true },
     { id: "fill",    name: "Rellena hueco",  subtitle: "Falta una sílaba",  color: "accent", emoji: "✏️", ready: false },
   ];
 

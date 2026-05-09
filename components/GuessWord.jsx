@@ -34,7 +34,16 @@ function _gwShuffle(arr) {
   return a;
 }
 
-function _gwBuildSession(allWords) {
+function _gwBuildSession(allWords, forced) {
+  // `forced` (debug): si se pasa una palabra, la ponemos primera en la
+  // sesión y rellenamos el resto al azar — útil para reproducir bugs
+  // sobre una palabra concreta sin reiniciar hasta que salga.
+  const forcedEntry = forced && allWords.find(w => w.word === forced);
+  if (forcedEntry) {
+    const rest = _gwShuffle(allWords.filter(w => w.word !== forced))
+      .slice(0, GW_SESSION_SIZE - 1);
+    return [forcedEntry, ...rest];
+  }
   const shuffled = _gwShuffle(allWords);
   if (shuffled.length >= GW_SESSION_SIZE) return shuffled.slice(0, GW_SESSION_SIZE);
   // Pool más pequeño que la sesión: la sesión es el pool entero (no
@@ -69,13 +78,16 @@ function _gwBuildBank(target, allWords) {
   return _gwShuffle(all);
 }
 
-function GuessWord({ onBack }) {
+function GuessWord({ onBack, debug = false }) {
   const allEntries = window.SUPEINGO_CONTENT.guessWords || [];
 
+  // Palabra forzada en modo depuración — si está, garantiza que aparezca
+  // primera en la sesión al construirla.
+  const [debugForced, setDebugForced] = useState(null);
   const [sessionSeed, setSessionSeed] = useState(0);
-  const session = useMemo(() => _gwBuildSession(allEntries),
+  const session = useMemo(() => _gwBuildSession(allEntries, debugForced),
     // eslint-disable-next-line
-    [sessionSeed]);
+    [sessionSeed, debugForced]);
 
   const [idx, setIdx] = useState(0);
   const sessionDone = idx >= session.length;
@@ -109,7 +121,7 @@ function GuessWord({ onBack }) {
   // tras agotar TODAS las pistas que esta palabra puede dar.
   const availableHints = useMemo(() => {
     let count = 3; // categoría + primera sílaba + silueta
-    if (target.color)              count++;
+    if (target.colors && target.colors.length > 0) count++;
     if (sizeComparators.smaller)   count++;
     if (sizeComparators.larger)    count++;
     return count;
@@ -137,6 +149,10 @@ function GuessWord({ onBack }) {
   const [status, setStatus] = useState("idle"); // idle | correct | wrong | flying
   const [confettiOn, setConfettiOn] = useState(false);
   const [flyingWord, setFlyingWord] = useState(null);
+  // Overlay central post-acierto (mismo patrón que MatchReveal de Memory).
+  // Ocupa la pantalla por encima de todo durante ~1.2s antes de que la
+  // palabra "vuele" hacia la lista inferior.
+  const [reveal, setReveal] = useState(null);
 
   // Histórico de palabras acertadas (para CompletedList y SessionComplete).
   const [completed, setCompleted] = useState([]);
@@ -149,6 +165,7 @@ function GuessWord({ onBack }) {
     setPinnedFirstId(null);
     setHintsUsed(0);
     setStatus("idle");
+    setReveal(null);
   }, [target.word, sessionSeed]);
 
   const visibleBank = initialBank.filter(p => !removedIds.has(p.id));
@@ -171,7 +188,7 @@ function GuessWord({ onBack }) {
   //   6 = silueta difuminada
   const applyHint = (level) => {
     if (level > GW_MAX_HINTS) return GW_MAX_HINTS;
-    if (level === 2 && !target.color)            return applyHint(3);
+    if (level === 2 && !(target.colors && target.colors.length > 0)) return applyHint(3);
     if (level === 3 && !sizeComparators.smaller) return applyHint(4);
     if (level === 4 && !sizeComparators.larger)  return applyHint(5);
     if (level === 5) {
@@ -238,6 +255,11 @@ function GuessWord({ onBack }) {
       playFeedback("correct");
       setStatus("correct");
       setConfettiOn(true);
+      // Overlay celebratorio (imagen + palabra silabeada) por encima
+      // de todo, mismo patrón que MatchReveal en Memory. Mientras esté
+      // visible, el AnswerArea se queda solo en verde sin la imagen
+      // embebida, que ahora vive en este overlay.
+      setReveal(target);
       setTimeout(() => speak(target.word), 250);
 
       const wordRecord = {
@@ -254,16 +276,17 @@ function GuessWord({ onBack }) {
       };
 
       setTimeout(() => {
+        setReveal(null);
         setFlyingWord(wordRecord);
         setStatus("flying");
-      }, 950);
+      }, 1200);
       setTimeout(() => {
         setCompleted(c => [...c, wordRecord]);
         setFlyingWord(null);
         setConfettiOn(false);
         setIdx(i => i + 1);
         setStatus("idle");
-      }, 1500);
+      }, 1700);
     } else {
       playFeedback("wrong");
       setStatus("wrong");
@@ -306,6 +329,33 @@ function GuessWord({ onBack }) {
     setPlaced(pinnedFirstId !== null ? [pinnedFirstId] : []);
   };
 
+  // Botón "Pista" — desbloquea la siguiente pista SIN borrar lo que el
+  // niño tenga colocado, a diferencia del flujo de fallo en handleCheck.
+  // Sigue contando en `hintsUsed`, así la métrica del chip al final
+  // refleja la ayuda total recibida (vía pistas o vía fallos).
+  const handleHint = () => {
+    if (status !== "idle") return;
+    if (hintsUsed >= availableHints) return;
+    const appliedLevel = applyHint(hintsUsed + 1);
+    setHintsUsed(appliedLevel);
+    // Si la pista aplicada es la 5 (primera sílaba), ésta debe quedar
+    // plantada en el slot 0 manteniendo el resto de lo que el niño ya
+    // hubiera colocado en otros slots.
+    if (appliedLevel >= 5) {
+      const firstSyl = target.syllables[0];
+      const tile = initialBank.find(p =>
+        p.correct && p.syllable === firstSyl && !removedIds.has(p.id)
+      );
+      if (!tile) return;
+      setPlaced(prev => {
+        // Quitar el tile pinned si ya estaba en otra posición distinta de 0.
+        const cleaned = prev.filter((id, i) => i === 0 || id !== tile.id);
+        cleaned[0] = tile.id;
+        return cleaned;
+      });
+    }
+  };
+
   const restartSession = () => {
     setCompleted([]);
     setIdx(0);
@@ -327,7 +377,8 @@ function GuessWord({ onBack }) {
       <ScreenHeader title="Adivina la palabra" onBack={onBack}/>
 
       {/* Card de respuesta: huecos N (= número de sílabas) desde el
-          inicio. La pista 0, siempre visible. */}
+          inicio. La pista 0, siempre visible. La imagen revelada al
+          acertar ya NO va aquí — se muestra en el overlay MatchReveal. */}
       <AnswerWithSlots
         slotsTotal={slotsTotal}
         placedSyllables={placedSyllables}
@@ -336,7 +387,6 @@ function GuessWord({ onBack }) {
         onRemove={handleSlotClick}
         status={status}
         isCorrect={status === "correct" || status === "flying"}
-        revealEntry={(status === "correct" || status === "flying") ? target : null}
       />
 
       {/* Pista textual de progreso */}
@@ -411,12 +461,48 @@ function GuessWord({ onBack }) {
         </ActionButton>
       </div>
 
-      {/* Lista de pistas reveladas */}
-      <HintList target={target} hintsUsed={hintsUsed} comparators={sizeComparators}/>
+      {/* Lista de pistas reveladas + botón de "pedir pista" en el header.
+          Se muestra siempre (incluso vacía) para que la lupa sea
+          descubrible desde el inicio. */}
+      <HintList
+        target={target}
+        hintsUsed={hintsUsed}
+        availableHints={availableHints}
+        comparators={sizeComparators}
+        onRequestHint={handleHint}
+        canRequestHint={hintsUsed < availableHints && status === "idle"}/>
+
+      {/* Overlay celebratorio reusado de Memory: imagen + palabra
+          silabeada por encima de todo. Se muestra durante ~1.2s tras
+          acertar, antes de que la palabra "vuele" a la lista. */}
+      {reveal && <MatchReveal entry={reveal}/>}
 
       <Confetti active={confettiOn}/>
       {completed.length > 0 && <CompletedList items={completed} total={session.length}/>}
       {flyingWord && <FlyingChip word={flyingWord}/>}
+
+      {/* Selector de palabra (debug) — mismo panel reusable que en
+          WordBuilder/Memory. La elegida queda primera en la sesión al
+          rebarajar; cambiarla resetea sesión y estado del juego. */}
+      {debug && (
+        <DebugWordPicker
+          allWords={allEntries}
+          current={target.word}
+          onPick={(w) => {
+            setDebugForced(w);
+            setCompleted([]);
+            setIdx(0);
+            setPlaced([]);
+            setPinnedFirstId(null);
+            setHintsUsed(0);
+            setStatus("idle");
+            setReveal(null);
+            setFlyingWord(null);
+            setConfettiOn(false);
+            setSessionSeed(s => s + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -428,7 +514,7 @@ function GuessWord({ onBack }) {
 // Si `pinnedFirstId` está seteado y coincide con el id colocado en
 // el slot 0, ese slot se pinta verde y queda no clickable.
 // ──────────────────────────────────────────────────────────────
-function AnswerWithSlots({ slotsTotal, placedSyllables, placedIds, pinnedFirstId, onRemove, status, isCorrect, revealEntry }) {
+function AnswerWithSlots({ slotsTotal, placedSyllables, placedIds, pinnedFirstId, onRemove, status, isCorrect }) {
   const borderColor = isCorrect ? "var(--ok)"
     : status === "wrong" ? "var(--accent-strong)"
     : "var(--ink-faint)";
@@ -449,6 +535,10 @@ function AnswerWithSlots({ slotsTotal, placedSyllables, placedIds, pinnedFirstId
       borderRadius: "var(--r-md)",
       minHeight: 76,
       display: "flex",
+      // Permitimos wrap por seguridad para palabras muy largas — aunque la
+      // imagen revelada ya no se renderiza aquí (vive en MatchReveal),
+      // las propias sílabas pueden necesitar saltar de línea con --scale alto.
+      flexWrap: "wrap",
       alignItems: "center",
       justifyContent: "center",
       gap: "var(--space-3)",
@@ -457,15 +547,6 @@ function AnswerWithSlots({ slotsTotal, placedSyllables, placedIds, pinnedFirstId
       animation: status === "wrong" ? "shake 360ms ease-in-out" : "none",
       transition: "border-color 200ms ease, background 200ms ease",
     }}>
-      {/* Si acertó, mostramos la imagen revelada al lado de la palabra */}
-      {revealEntry && (
-        <div style={{
-          flexShrink: 0,
-          animation: "chip-in 360ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-        }}>
-          <WordImage entry={revealEntry} size={56}/>
-        </div>
-      )}
       <div style={{
         display: "inline-flex",
         alignItems: "center",
@@ -524,11 +605,11 @@ function AnswerWithSlots({ slotsTotal, placedSyllables, placedIds, pinnedFirstId
 }
 
 // ──────────────────────────────────────────────────────────────
-// HintList — lista vertical de pistas reveladas. Crece por debajo
-// del banco a medida que el niño falla.
+// HintList — lista vertical de pistas reveladas. Se muestra siempre
+// (incluso vacía) para alojar el botón "pedir pista" 🔍 en el header,
+// que es el sustituto del antiguo botón "Pista" de la barra de acciones.
 // ──────────────────────────────────────────────────────────────
-function HintList({ target, hintsUsed, comparators }) {
-  if (hintsUsed === 0) return null;
+function HintList({ target, hintsUsed, availableHints, comparators, onRequestHint, canRequestHint }) {
   // Construimos las pistas en el orden de desbloqueo, saltando las que
   // no aplican (sin color, sin sizeSmaller, sin sizeLarger).
   // Niveles: 1=cat, 2=color, 3=más-grande-que, 4=más-pequeño-que,
@@ -537,7 +618,7 @@ function HintList({ target, hintsUsed, comparators }) {
   if (hintsUsed >= 1) {
     cards.push(<CategoryHint key="cat" entry={target}/>);
   }
-  if (hintsUsed >= 2 && target.color) {
+  if (hintsUsed >= 2 && target.colors && target.colors.length > 0) {
     cards.push(<ColorHint key="color" entry={target}/>);
   }
   if (hintsUsed >= 3 && comparators && comparators.smaller) {
@@ -555,10 +636,10 @@ function HintList({ target, hintsUsed, comparators }) {
   if (hintsUsed >= 6) {
     cards.push(<SilhouetteHint key="silhouette" entry={target}/>);
   }
-  if (cards.length === 0) return null;
   // Invertimos para que la pista más reciente quede arriba — así no
   // hay que hacer scroll cuando se desbloquea una nueva.
   cards.reverse();
+  const exhausted = hintsUsed >= availableHints;
   return (
     <div style={{
       margin: "var(--space-4) var(--space-4) 0",
@@ -573,13 +654,79 @@ function HintList({ target, hintsUsed, comparators }) {
       gap: "var(--space-3)",
     }}>
       <div style={{
-        color: "var(--ink-soft)",
-        fontSize: "calc(12px * var(--scale))",
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: "0.08em",
-      }}>Pistas</div>
-      {cards}
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "var(--space-3)",
+      }}>
+        <span style={{
+          color: "var(--ink-soft)",
+          fontSize: "calc(12px * var(--scale))",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+        }}>Pistas {hintsUsed > 0 && (
+          <span style={{
+            color: "var(--ink-faint)",
+            fontWeight: 600,
+            marginLeft: 4,
+          }}>{hintsUsed}/{availableHints}</span>
+        )}</span>
+        {/* Botón circular con la lupa 🔍 para pedir la siguiente pista.
+            Sustituye al antiguo botón "Pista" de la barra de acciones. */}
+        <button
+          onClick={onRequestHint}
+          disabled={!canRequestHint}
+          aria-label={exhausted ? "No quedan pistas" : "Pedir una pista"}
+          title={exhausted ? "No quedan pistas" : "Pedir una pista"}
+          style={{
+            width: 40, height: 40,
+            borderRadius: "50%",
+            background: canRequestHint ? "var(--surface)" : "var(--bg-2)",
+            border: `3px solid ${canRequestHint ? "var(--ink)" : "var(--ink-faint)"}`,
+            boxShadow: canRequestHint ? "0 3px 0 var(--ink)" : "none",
+            display: "grid",
+            placeItems: "center",
+            cursor: canRequestHint ? "pointer" : "default",
+            opacity: canRequestHint ? 1 : 0.5,
+            transition: "transform 120ms ease, box-shadow 120ms ease",
+            flexShrink: 0,
+            fontSize: 20,
+            lineHeight: 1,
+            padding: 0,
+          }}
+          onPointerDown={e => {
+            if (!canRequestHint) return;
+            e.currentTarget.style.transform = "translateY(2px)";
+            e.currentTarget.style.boxShadow = "0 1px 0 var(--ink)";
+          }}
+          onPointerUp={e => {
+            if (!canRequestHint) return;
+            e.currentTarget.style.transform = "";
+            e.currentTarget.style.boxShadow = "0 3px 0 var(--ink)";
+          }}
+          onPointerLeave={e => {
+            if (!canRequestHint) return;
+            e.currentTarget.style.transform = "";
+            e.currentTarget.style.boxShadow = "0 3px 0 var(--ink)";
+          }}
+        >
+          <span aria-hidden>🔍</span>
+        </button>
+      </div>
+      {cards.length > 0 ? cards : (
+        <div style={{
+          color: "var(--ink-faint)",
+          fontSize: "calc(13px * var(--scale))",
+          fontStyle: "italic",
+          textAlign: "center",
+          padding: "var(--space-2) 0",
+        }}>
+          {exhausted
+            ? "Ya están todas — ¡tú puedes!"
+            : "Pulsa la 🔍 si necesitas ayuda"}
+        </div>
+      )}
     </div>
   );
 }
@@ -670,17 +817,32 @@ function FirstSyllableHint({ syllable }) {
 }
 
 function ColorHint({ entry }) {
-  const hex = (window.SUPEINGO_CONTENT.guessColorHex || {})[entry.color] || "#777";
+  const palette = window.SUPEINGO_CONTENT.guessColorHex || {};
+  const colors = entry.colors || [];
+  // Une los colores en español: 1→"verde", 2→"verde y rojo",
+  // 3+→"verde, rojo y negro".
+  const text = colors.length <= 1
+    ? colors[0] || ""
+    : colors.length === 2
+      ? `${colors[0]} y ${colors[1]}`
+      : `${colors.slice(0, -1).join(", ")} y ${colors[colors.length - 1]}`;
   return (
     <HintCard>
       <span aria-hidden style={{
-        width: 28, height: 28,
-        background: hex,
-        border: "3px solid var(--ink)",
-        borderRadius: "50%",
+        display: "inline-flex",
+        gap: 4,
         flexShrink: 0,
-      }}/>
-      <span style={{ fontSize: "calc(17px * var(--scale))", fontWeight: 600 }}>Es {entry.color}</span>
+      }}>
+        {colors.map(c => (
+          <span key={c} style={{
+            width: 28, height: 28,
+            background: palette[c] || "#777",
+            border: "3px solid var(--ink)",
+            borderRadius: "50%",
+          }}/>
+        ))}
+      </span>
+      <span style={{ fontSize: "calc(17px * var(--scale))", fontWeight: 600 }}>Es {text}</span>
     </HintCard>
   );
 }

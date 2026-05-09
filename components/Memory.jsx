@@ -152,9 +152,14 @@ function Memory({ onBack, debug = false }) {
       <ScreenHeader title="Memoria" onBack={onBack}/>
 
       {/* Tablero — mismo recuadro discontinuo que el banco visual de los
-          otros juegos, para coherencia. */}
+          otros juegos, para coherencia.
+          maxWidth + auto: en desktop el app-shell sube a 1100px y, sin
+          cap, las 12 cartas con aspect-ratio 1:1 hacen el tablero más
+          alto que la viewport. Mantenemos el ancho del tablero similar
+          al de móvil y lo centramos dentro del shell ancho. */}
       <div style={{
-        margin: "var(--space-3) var(--space-4) 0",
+        margin: "var(--space-3) auto 0",
+        maxWidth: 520,
         padding: "var(--space-3)",
         background: "var(--bg-2)",
         border: "3px dashed var(--ink-faint)",
@@ -447,3 +452,5 @@ function MemorySessionComplete({ completed, onPlayAgain, onBack }) {
 }
 
 window.Memory = Memory;
+// MatchReveal se reutiliza desde GuessWord — mismo overlay celebratorio.
+window.MatchReveal = MatchReveal;
