@@ -302,7 +302,8 @@ function GuessWord({ onBack }) {
 
   const handleClear = () => {
     if (status !== "idle") return;
-    setPlaced([]);
+    // La sílaba pinned (pista 5) no es borrable: la conservamos en el slot 0.
+    setPlaced(pinnedFirstId !== null ? [pinnedFirstId] : []);
   };
 
   const restartSession = () => {
