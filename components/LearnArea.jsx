@@ -33,7 +33,7 @@ function LearnMenu({ onBack, onPick }) {
 
       <div style={{ padding: "0 var(--space-5) var(--space-4)", position: "relative", zIndex: 2 }}>
         <MascotHint size={56} mood="happy">
-          ¿Qué quieres ver?
+          Elige qué aprender
         </MascotHint>
       </div>
 
@@ -131,12 +131,6 @@ function LettersScreen({ onBack }) {
     <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-7)" }}>
       <div className="bg-decor"/>
       <ScreenHeader title="El abecedario" onBack={onBack}/>
-
-      <div style={{ padding: "0 var(--space-5) var(--space-4)", position: "relative", zIndex: 2 }}>
-        <MascotHint size={56} mood="happy">
-          Pulsa una letra para escucharla
-        </MascotHint>
-      </div>
 
       <div style={{
         display: "flex", justifyContent: "center",
@@ -295,8 +289,12 @@ function ExamplePanel({ letter, showCase, onClose }) {
             {(() => {
               // Resaltar la(s) letra(s) objetivo: para dígrafos como "CH"
               // o "LL" hay que comparar de 2 en 2, no carácter a carácter.
+              // Comparación SIEMPRE en mayúsculas (la fuente lo está); el
+              // texto que se RENDERIZA respeta el toggle del menú: muestra
+              // la palabra en minúsculas si el usuario eligió "a b c".
               const target = letter.upper;
               const word = letter.word;
+              const display = showCase === "lower" ? word.toLowerCase() : word;
               const out = [];
               let i = 0;
               while (i < word.length) {
@@ -305,14 +303,14 @@ function ExamplePanel({ letter, showCase, onClose }) {
                 if (isTarget) {
                   out.push(
                     <span key={i} style={{ color: "var(--accent-strong)", fontWeight: 700 }}>
-                      {word.slice(i, i + target.length)}
+                      {display.slice(i, i + target.length)}
                     </span>
                   );
                   i += target.length;
                 } else {
                   out.push(
                     <span key={i} style={{ color: "var(--ink)", fontWeight: 500 }}>
-                      {word[i]}
+                      {display[i]}
                     </span>
                   );
                   i += 1;

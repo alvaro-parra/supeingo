@@ -76,27 +76,31 @@ function buildSession(allWords) {
   return out.slice(0, SESSION_SIZE);
 }
 
-function WordBuilder({ onBack, exampleWord }) {
+function WordBuilder({ onBack, exampleWord, debug = false }) {
   const allWords = window.SUPEINGO_CONTENT.words;
+  // Palabra forzada por el panel de depuración (null = comportamiento normal)
+  const [debugForced, setDebugForced] = useState(null);
 
   // Construimos una sesión de 10 palabras al montar
   const [sessionSeed, setSessionSeed] = useState(0);
   const session = useMemo(() => {
-    // Si vienen con `exampleWord`, la ponemos primera
+    // Si vienen con `exampleWord` o el panel de depuración fuerza una
+    // palabra, la ponemos primera. `debugForced` gana sobre `exampleWord`.
+    const forced = debugForced || exampleWord;
     const built = buildSession(allWords);
-    if (exampleWord) {
-      const idx = built.findIndex(w => w.word === exampleWord);
+    if (forced) {
+      const idx = built.findIndex(w => w.word === forced);
       if (idx > 0) {
         const [w] = built.splice(idx, 1);
         built.unshift(w);
       } else if (idx === -1) {
-        const ex = allWords.find(w => w.word === exampleWord);
+        const ex = allWords.find(w => w.word === forced);
         if (ex) built.unshift(ex);
       }
     }
     return built.slice(0, SESSION_SIZE);
     // eslint-disable-next-line
-  }, [sessionSeed]);
+  }, [sessionSeed, debugForced]);
 
   const [idx, setIdx] = useState(0);
   const sessionDone = idx >= session.length;
@@ -104,7 +108,7 @@ function WordBuilder({ onBack, exampleWord }) {
   // siguientes (useMemo, useEffect) no revienten al desreferenciar
   // target.word / target.syllables. La pantalla real de fin de sesión
   // se renderiza más abajo con un early-return ANTES del JSX principal.
-  const target = session[idx] || { word: "", syllables: [], emoji: "" };
+  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null };
 
   // Histórico de aciertos en esta sesión: [{ word, syllables, emoji, attempts }]
   const [completed, setCompleted] = useState([]);
@@ -209,6 +213,7 @@ function WordBuilder({ onBack, exampleWord }) {
         word: target.word,
         syllables: target.syllables,
         emoji: target.emoji,
+        svg: target.svg,
         attempts,
       };
 
@@ -311,15 +316,17 @@ function WordBuilder({ onBack, exampleWord }) {
         <div
           id="wb-emoji"
           style={{
-            fontSize: "calc(64px * var(--scale))",
-            lineHeight: 1,
             animation: status === "correct" ? "pop 600ms ease-out" : "bob 2.4s ease-in-out infinite",
-            filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.08))",
             opacity: status === "flying" ? 0 : 1,
             transition: "opacity 200ms ease",
+            // El filter drop-shadow lo aplica WordImage internamente para
+            // SVGs; para emojis lo replicamos aquí para mantener look.
+            filter: target.svg ? "none" : "drop-shadow(0 4px 6px rgba(0,0,0,0.08))",
+            fontSize: "calc(64px * var(--scale))",
+            lineHeight: 1,
           }}
           aria-hidden
-        >{target.emoji}</div>
+        ><WordImage entry={target} size={64}/></div>
         <SpeakButton text={target.word} size={48}/>
       </div>
 
@@ -409,6 +416,158 @@ function WordBuilder({ onBack, exampleWord }) {
       {flyingWord && (
         <FlyingChip word={flyingWord}/>
       )}
+
+      {/* Panel de depuración — solo si está activo el modo debug. Permite
+          forzar la palabra que aparece primero en la sesión. */}
+      {debug && (
+        <DebugWordPicker
+          allWords={allWords}
+          current={target.word}
+          onPick={(word) => {
+            // Reiniciamos sesión completa con la palabra forzada al frente.
+            setDebugForced(word);
+            setCompleted([]);
+            setIdx(0);
+            setPlaced([]);
+            setAttempts(1);
+            setStatus("idle");
+            setSessionSeed(s => s + 1);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────
+// DebugWordPicker — panel flotante (solo en modo depuración) que
+// permite saltar a cualquier palabra del diccionario sin tener que
+// recargar la sesión hasta que salga al azar.
+// ──────────────────────────────────────────────────────────────
+function DebugWordPicker({ allWords, current, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    if (!q) return allWords;
+    return allWords.filter(w => w.word.includes(q));
+  }, [allWords, query]);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        title="Depuración: elegir palabra"
+        style={{
+          position: "fixed",
+          left: 12, bottom: 12,
+          zIndex: 90,
+          background: "#1a1c20",
+          color: "#f0c674",
+          border: "1px solid #444",
+          borderRadius: 8,
+          padding: "6px 10px",
+          fontSize: 12,
+          fontFamily: "ui-monospace, monospace",
+          fontWeight: 700,
+          cursor: "pointer",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+        }}
+      >🐞 {current || "?"}</button>
+    );
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-label="Depuración: elegir palabra"
+      style={{
+        position: "fixed",
+        left: 12, bottom: 12,
+        width: 260,
+        maxHeight: "60vh",
+        zIndex: 90,
+        background: "#1a1c20",
+        color: "#e8eaed",
+        border: "1px solid #444",
+        borderRadius: 10,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+        display: "flex",
+        flexDirection: "column",
+        fontFamily: "ui-monospace, monospace",
+        fontSize: 12,
+      }}
+    >
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        padding: "8px 10px",
+        borderBottom: "1px solid #333",
+        fontWeight: 700,
+        color: "#f0c674",
+      }}>
+        🐞 DEBUG · palabra
+        <button
+          onClick={() => setOpen(false)}
+          style={{
+            marginLeft: "auto",
+            background: "transparent", color: "#9ca0aa",
+            border: 0, cursor: "pointer", fontSize: 14,
+          }}
+          aria-label="Cerrar"
+        >×</button>
+      </div>
+      <input
+        type="text"
+        autoFocus
+        placeholder="Filtrar…"
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        style={{
+          margin: 8,
+          padding: "6px 8px",
+          background: "#0f1114",
+          color: "#e8eaed",
+          border: "1px solid #333",
+          borderRadius: 6,
+          font: "inherit",
+        }}
+      />
+      <div style={{
+        overflowY: "auto",
+        padding: "0 4px 8px",
+      }}>
+        {filtered.length === 0 && (
+          <div style={{ padding: "8px 10px", color: "#9ca0aa" }}>Sin resultados</div>
+        )}
+        {filtered.map(w => {
+          const active = w.word === current;
+          return (
+            <button
+              key={w.word}
+              onClick={() => { onPick(w.word); setOpen(false); }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                width: "100%",
+                padding: "5px 8px",
+                background: active ? "#2a3340" : "transparent",
+                color: active ? "#f0c674" : "#e8eaed",
+                border: 0,
+                borderRadius: 4,
+                cursor: "pointer",
+                font: "inherit",
+                textAlign: "left",
+              }}
+            >
+              <span style={{ width: 18, textAlign: "center" }}>{w.svg ? "🖼" : (w.emoji || "·")}</span>
+              <span style={{ fontWeight: 700 }}>{w.word}</span>
+              <span style={{ marginLeft: "auto", color: "#7a808a" }}>{w.syllables.join("·")}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -500,7 +659,7 @@ function CompletedList({ items }) {
 }
 
 function CompletedChip({ item, isLatest, showAttempts = true }) {
-  const { word, syllables, emoji, attempts } = item;
+  const { word, syllables, attempts } = item;
   const perfect = attempts === 1;
   return (
     <button
@@ -523,7 +682,7 @@ function CompletedChip({ item, isLatest, showAttempts = true }) {
       onPointerUp={e => e.currentTarget.style.transform = "translateY(0)"}
       onPointerLeave={e => e.currentTarget.style.transform = "translateY(0)"}
     >
-      <span style={{ fontSize: 28, lineHeight: 1 }} aria-hidden>{emoji}</span>
+      <WordImage entry={item} size={28} scale={false}/>
       <span style={{
         fontFamily: "Andika, Fredoka, sans-serif",
         fontWeight: 700,
@@ -625,7 +784,7 @@ function FlyingChip({ word }) {
         alignItems: "center",
         gap: 10,
       }}>
-        <span style={{ fontSize: 32 }}>{word.emoji}</span>
+        <WordImage entry={word} size={32} scale={false}/>
         <span style={{
           fontFamily: "Andika, Fredoka, sans-serif",
           fontWeight: 700,
@@ -776,9 +935,13 @@ function Trophy({ size = 160 }) {
 
 // ──────────────────────────────────────────────────────────────
 // AnswerArea — caja única que muestra las sílabas colocadas.
-// No revela cuántas sílabas tiene la palabra. Si el niño coloca
-// demasiadas, las fichas saltan a una segunda fila (la caja crece
-// hacia abajo). Sin medir nada: pura CSS con flex-wrap.
+// No revela cuántas sílabas tiene la palabra. Para evitar que el
+// recuadro cambie de alto (lo que desplazaba el banco de sílabas
+// debajo y provocaba misclicks), usa ALTURA FIJA y construye la
+// palabra en línea con separadores · — ocupa mucho menos espacio
+// que renderizar cada sílaba como botón con borde, así que rara
+// vez salta a una segunda fila aunque la palabra sea larga.
+// Cada sílaba sigue siendo pulsable para quitarla.
 // ──────────────────────────────────────────────────────────────
 function AnswerArea({ placedSyllables, onRemove, status, isCorrect }) {
   const empty = placedSyllables.length === 0;
@@ -790,23 +953,31 @@ function AnswerArea({ placedSyllables, onRemove, status, isCorrect }) {
   const solid = isCorrect || status === "wrong";
   const bg = isCorrect ? "var(--ok-soft)" : "var(--surface)";
 
+  // Auto-shrink para palabras muy largas: a partir de ~12 chars totales
+  // (sumando sílabas + separadores) bajamos el tamaño un punto, así casi
+  // siempre cabe en una línea y la caja mantiene su alto.
+  const totalChars = placedSyllables.reduce((n, s) => n + s.length, 0)
+    + Math.max(0, placedSyllables.length - 1);
+  const fontPx = totalChars > 14 ? 22 : totalChars > 11 ? 25 : 28;
+
   return (
     <div style={{
       margin: "0 var(--space-4)",
-      padding: "var(--space-2) var(--space-3)",
+      padding: "0 var(--space-3)",
       background: bg,
       border: `3px ${solid ? "solid" : "dashed"} ${borderColor}`,
       borderRadius: "var(--r-md)",
-      minHeight: 60,
+      // Altura FIJA — no depende del contenido. Así el banco de sílabas
+      // de debajo nunca se mueve entre 0/1/N sílabas seleccionadas.
+      height: 64,
       display: "flex",
-      flexWrap: "wrap",
-      gap: 8,
       alignItems: "center",
       justifyContent: "center",
       position: "relative",
       zIndex: 2,
       animation: status === "wrong" ? "shake 360ms ease-in-out" : "none",
       transition: "border-color 200ms ease, background 200ms ease",
+      overflow: "hidden",
     }}>
       {empty ? (
         <span style={{
@@ -818,26 +989,60 @@ function AnswerArea({ placedSyllables, onRemove, status, isCorrect }) {
           Pulsa una sílaba ↓
         </span>
       ) : (
-        placedSyllables.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => onRemove(i)}
-            disabled={status !== "idle"}
-            style={{
-              padding: "6px 14px",
-              background: isCorrect ? "var(--ok-soft)" : "var(--surface)",
-              border: `3px solid ${borderColor}`,
-              borderRadius: "var(--r-md)",
-              fontSize: "calc(28px * var(--scale))",
-              fontWeight: 700,
-              color: "var(--ink)",
-              fontFamily: "Andika, Fredoka, sans-serif",
-              lineHeight: 1.1,
-              cursor: status === "idle" ? "pointer" : "default",
-              whiteSpace: "nowrap",
-            }}
-          >{s}</button>
-        ))
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          fontFamily: "Andika, Fredoka, sans-serif",
+          fontSize: `calc(${fontPx}px * var(--scale))`,
+          fontWeight: 700,
+          color: "var(--ink)",
+          lineHeight: 1.1,
+          letterSpacing: "0.02em",
+          maxWidth: "100%",
+          flexWrap: "nowrap",
+        }}>
+          {placedSyllables.map((s, i) => (
+            <React.Fragment key={i}>
+              <button
+                onClick={() => onRemove(i)}
+                disabled={status !== "idle"}
+                aria-label={`Quitar ${s}`}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  // Padding generoso vertical para hit-target sin crecer
+                  // la altura de la caja (height fija en el contenedor).
+                  padding: "8px 6px",
+                  margin: 0,
+                  font: "inherit",
+                  color: "inherit",
+                  cursor: status === "idle" ? "pointer" : "default",
+                  borderRadius: 6,
+                  whiteSpace: "nowrap",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+                onPointerDown={e => {
+                  if (status !== "idle") return;
+                  e.currentTarget.style.background = "var(--bg-2)";
+                }}
+                onPointerUp={e => { e.currentTarget.style.background = "transparent"; }}
+                onPointerLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                onPointerCancel={e => { e.currentTarget.style.background = "transparent"; }}
+              >{s}</button>
+              {i < placedSyllables.length - 1 && (
+                <span aria-hidden style={{
+                  color: "var(--ink-faint)",
+                  fontWeight: 500,
+                  pointerEvents: "none",
+                  // Un pelín más pequeño que las sílabas, como en
+                  // CompletedChip y FlyingChip, para mantener el ritmo.
+                  fontSize: "0.85em",
+                  padding: "0 1px",
+                }}>·</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
       )}
     </div>
   );

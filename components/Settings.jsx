@@ -1,14 +1,19 @@
-// Pantalla de Configuración — Audio (voz, volumen) + Tamaño de elementos.
+// Pantalla de Configuración — Audio (voz) + Tamaño de elementos.
 // Persistencia en localStorage. Se muestra automáticamente la primera vez.
+//
+// Nota: el volumen se controla desde el sistema operativo. No se expone
+// dentro de la app porque era ruido innecesario para un dispositivo de
+// uso individual (no se va a hacer otra cosa al mismo tiempo).
 
 const SETTINGS_KEY = "supeingo:settings:v1";
 
 const SETTINGS_DEFAULTS = {
   voiceURI: null,   // null = auto (la mejor voz española disponible)
-  volume: 1.0,      // 0.0 - 1.0
   scale: 1.1,       // 0.9 - 1.4
   includeDigraphs: true, // incluir CH y LL como letras (enseñanza tradicional)
-  ttsDebug: false,  // panel flotante con las últimas llamadas a speak()
+  // "debug" antes era "ttsDebug" (solo logs de TTS). Ahora es un modo
+  // depuración general: TTS log + selector de palabra en Forma palabras.
+  debug: false,
 };
 
 function loadSettings() {
@@ -16,6 +21,14 @@ function loadSettings() {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    // Migraciones in-place del JSON guardado:
+    //  • ttsDebug → debug (modo depuración general).
+    //  • volume eliminado (lo gobierna el OS).
+    if (parsed.ttsDebug !== undefined && parsed.debug === undefined) {
+      parsed.debug = !!parsed.ttsDebug;
+    }
+    delete parsed.ttsDebug;
+    delete parsed.volume;
     return { ...SETTINGS_DEFAULTS, ...parsed };
   } catch (e) { return null; }
 }
@@ -26,17 +39,20 @@ function saveSettings(s) {
 
 function applySettings(s) {
   // Audio: la función speak() lo lee de window.SUPEINGO_AUDIO_CONFIG
-  window.SUPEINGO_AUDIO_CONFIG = { voiceURI: s.voiceURI, volume: s.volume };
+  window.SUPEINGO_AUDIO_CONFIG = { voiceURI: s.voiceURI };
   // Tamaño: variable CSS aplicada al root
   document.documentElement.style.setProperty("--scale", String(s.scale));
   // Pedagogía
   window.SUPEINGO_TEACHING_CONFIG = {
     includeDigraphs: !!s.includeDigraphs,
   };
-  // Debug
+  // Debug — un único flag global. Componentes lo leen para decidir si
+  // muestran panel TTS, selector de palabra en juegos, etc.
   window.SUPEINGO_DEBUG_CONFIG = {
-    ttsDebug: !!s.ttsDebug,
+    debug: !!s.debug,
   };
+  // Notificar a componentes que reaccionan en vivo (sin remontar)
+  try { window.dispatchEvent(new CustomEvent("supeingo-debug-change", { detail: { debug: !!s.debug } })); } catch (e) {}
 }
 
 // Hook para usar settings con persistencia automática
@@ -89,13 +105,11 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
   const previewVoice = (uri) => {
     // Aplicar temporalmente la voz para que speak() la use
     const prev = window.SUPEINGO_AUDIO_CONFIG;
-    window.SUPEINGO_AUDIO_CONFIG = { voiceURI: uri, volume: settings.volume };
+    window.SUPEINGO_AUDIO_CONFIG = { voiceURI: uri };
     speak("Hola, soy tu compañero de español");
-    // Restaurar la config global tras el preview (el siguiente speak ya usará la elegida real)
+    // Restaurar la config global tras el preview
     setTimeout(() => { window.SUPEINGO_AUDIO_CONFIG = prev; }, 50);
   };
-
-  const previewVolume = () => speak("Hola");
 
   return (
     <div style={{
@@ -180,31 +194,27 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
           </p>
         )}
 
-        <Field label="Volumen">
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 18 }}>🔈</span>
-            <input
-              type="range"
-              min={0} max={1} step={0.05}
-              value={settings.volume}
-              onChange={e => onChange({ volume: parseFloat(e.target.value) })}
-              style={sliderStyle}
-            />
-            <span style={{ fontSize: 22 }}>🔊</span>
-            <span style={valueChip}>{Math.round(settings.volume * 100)}%</span>
-          </div>
-        </Field>
-
-        {/* Único botón Probar — usa la voz y volumen actuales */}
+        {/* Botón Probar — usa la voz actual. El volumen lo controla
+            el sistema, no se expone aquí. */}
         <div style={{ display: "flex", justifyContent: "center", marginTop: "var(--space-2)" }}>
           <button
             onClick={() => previewVoice(settings.voiceURI)}
             style={bigPreviewBtnStyle}
-            aria-label="Probar voz y volumen"
+            aria-label="Probar voz"
           >
             <PlayIcon/> Probar
           </button>
         </div>
+
+        <p style={{
+          margin: 0,
+          fontSize: "calc(12px * var(--scale))",
+          color: "var(--ink-soft)",
+          textAlign: "center",
+          lineHeight: 1.4,
+        }}>
+          El volumen se ajusta con los botones del dispositivo.
+        </p>
       </Section>
 
       {/* Sección: Tamaño */}
@@ -274,10 +284,10 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
       {/* Sección: Depuración (uso interno) */}
       <Section title="Depuración" icon={<DebugIcon/>}>
         <Toggle
-          label="Debug TTS"
-          hint="Muestra un panel flotante con las últimas llamadas a la voz: texto crudo, texto limpio enviado al TTS y tipo (letra · sílaba · palabra)."
-          checked={!!settings.ttsDebug}
-          onChange={(v) => onChange({ ttsDebug: v })}
+          label="Modo depuración"
+          hint="Activa herramientas internas: panel flotante con las últimas llamadas a la voz (texto crudo y limpio, tipo) y selector de palabra concreta dentro de los juegos."
+          checked={!!settings.debug}
+          onChange={(v) => onChange({ debug: v })}
         />
       </Section>
 

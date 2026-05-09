@@ -158,10 +158,11 @@ function _flushQueue() {
     u.lang = "es-ES";
     const v = _resolveVoice();
     if (v) u.voice = v;
-    const cfg = window.SUPEINGO_AUDIO_CONFIG || {};
     u.rate = opts.rate ?? 0.95;
     u.pitch = opts.pitch ?? 1.0;
-    u.volume = opts.volume ?? cfg.volume ?? 1.0;
+    // El volumen lo gobierna el sistema operativo — siempre 1.0 a nivel
+    // de la utterance. (Antes había un slider en Ajustes; se quitó.)
+    u.volume = opts.volume ?? 1.0;
     u.onend = u.onerror = () => { _speaking = false; setTimeout(_flushQueue, 30); };
     window.speechSynthesis.speak(u);
     // Workaround del bug de Chrome donde la cola se "pausa" sola.
@@ -211,6 +212,61 @@ function speak(text, opts = {}) {
       _flushQueue();
     }
   } catch (e) {}
+}
+
+// ------------------------------------------------------------
+// WordImage — renderiza la representación gráfica de una palabra del
+// diccionario. Si la entrada tiene `svg`, carga ese fichero desde
+// assets/svg/; si no, cae al `emoji` de la entrada. Si no hay ninguno
+// de los dos, devuelve un placeholder discreto (cuadrado punteado) en
+// vez de romper la UI.
+// `entry` puede ser una entrada de diccionario o cualquier objeto con
+// `{ svg?, emoji? }`. `size` es el lado en píxeles a la escala 1×; si
+// `scale` es true (por defecto) se aplica `var(--scale)` para que crezca
+// con el ajuste de tamaño global.
+// ------------------------------------------------------------
+function WordImage({ entry, size = 32, scale = true, style = {} }) {
+  const px = scale ? `calc(${size}px * var(--scale))` : `${size}px`;
+  if (entry && entry.svg) {
+    return (
+      <img
+        src={`assets/svg/${entry.svg}`}
+        alt=""
+        aria-hidden
+        draggable={false}
+        style={{
+          width: px,
+          height: px,
+          display: "block",
+          filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.08))",
+          ...style,
+        }}
+      />
+    );
+  }
+  if (entry && entry.emoji) {
+    return (
+      <span
+        aria-hidden
+        style={{ fontSize: px, lineHeight: 1, display: "inline-block", ...style }}
+      >{entry.emoji}</span>
+    );
+  }
+  // Sin emoji ni svg — placeholder discreto que no se confunde con
+  // contenido real. Cuadrado punteado al tamaño esperado.
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: px,
+        height: px,
+        display: "inline-block",
+        border: "2px dashed var(--ink-faint)",
+        borderRadius: 6,
+        ...style,
+      }}
+    />
+  );
 }
 
 // ------------------------------------------------------------
@@ -620,10 +676,9 @@ function TTSDebugPanel({ enabled }) {
       u.lang = "es-ES";
       const v = _resolveVoice();
       if (v) u.voice = v;
-      const cfg = window.SUPEINGO_AUDIO_CONFIG || {};
       u.rate = 0.95;
       u.pitch = 1.0;
-      u.volume = cfg.volume ?? 1.0;
+      u.volume = 1.0;
       window.speechSynthesis.speak(u);
     } catch (e) {}
   };
@@ -782,5 +837,5 @@ function TTSDebugPanel({ enabled }) {
 
 // Exportar
 Object.assign(window, {
-  speak, whenTTSReady, Mascot, MascotHint, HelpButton, SpeakButton, Star, Confetti, BigButton, ScreenHeader, TTSDebugPanel,
+  speak, whenTTSReady, Mascot, MascotHint, HelpButton, SpeakButton, Star, Confetti, BigButton, ScreenHeader, TTSDebugPanel, WordImage,
 });

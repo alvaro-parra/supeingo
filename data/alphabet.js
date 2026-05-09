@@ -1,64 +1,82 @@
-// Letras del abecedario español + vocales.
+// Letras del abecedario español, con palabra-ejemplo por letra.
 // Sección: Aprender → Letras.
 //
-// Self-contained: schema + data en el mismo fichero. Si en el futuro
-// se cambia el formato (p.ej. añadir `audioFile`), basta con actualizar
-// SCHEMA y los tests detectarán cualquier entrada que no encaje.
+// Cada entrada referencia una `word` del diccionario (data/dictionary.js):
+// el emoji, el svg y las sílabas se hidratan desde allí, no se duplican aquí.
 
 (function () {
   const SCHEMA = {
     name: "alphabet",
     fields: {
-      upper: { type: "string", required: true },
-      lower: { type: "string", required: true },
-      word: { type: "string", required: true },     // palabra-ejemplo
-      emoji: { type: "string", required: true },
+      upper:   { type: "string",  required: true },
+      lower:   { type: "string",  required: true },
+      word:    { type: "string",  required: true }, // referencia al diccionario
       digraph: { type: "boolean", required: false }, // CH, LL
-      spell: { type: "string", required: false },   // override TTS (p.ej. Y → "i griega")
+      // `spell` es lo que se ENVÍA al TTS para nombrar la letra. Sin él
+      // se usa `upper`. Útil para Y → "i griega" o para forzar pronunciación
+      // española en consonantes que el TTS podría leer en otro idioma.
+      spell:   { type: "string",  required: false },
     },
   };
 
   const DATA = [
-    // `spell` es lo que se ENVÍA al TTS para nombrar la letra. Lo damos
-    // como sílaba española sin punto ni mayúsculas, para evitar que la voz
-    // confunda "Be" con el inglés "to be". Si está vacío, se usa `upper`.
-    { upper: "A",  lower: "a",  word: "ABEJA",     emoji: "🐝" },
-    { upper: "B",  lower: "b",  word: "BARCO",     emoji: "⛵" },
-    { upper: "C",  lower: "c",  word: "CASA",      emoji: "🏠" },
-    { upper: "CH", lower: "ch", word: "CHOCOLATE", emoji: "🍫", digraph: true, spell: "che" },
-    { upper: "D",  lower: "d",  word: "DEDO",      emoji: "👆" },
-    { upper: "E",  lower: "e",  word: "ELEFANTE",  emoji: "🐘" },
-    { upper: "F",  lower: "f",  word: "FLOR",      emoji: "🌸" },
-    { upper: "G",  lower: "g",  word: "GATO",      emoji: "🐱" },
-    { upper: "H",  lower: "h",  word: "HOJA",      emoji: "🍃" },
-    { upper: "I",  lower: "i",  word: "ISLA",      emoji: "🏝️" },
-    { upper: "J",  lower: "j",  word: "JIRAFA",    emoji: "🦒" },
-    { upper: "K",  lower: "k",  word: "KIWI",      emoji: "🥝" },
-    { upper: "L",  lower: "l",  word: "LUNA",      emoji: "🌙" },
-    { upper: "LL", lower: "ll", word: "LLAVE",     emoji: "🔑", digraph: true },
-    { upper: "M",  lower: "m",  word: "MANO",      emoji: "✋" },
-    { upper: "N",  lower: "n",  word: "NUBE",      emoji: "☁️" },
-    { upper: "Ñ",  lower: "ñ",  word: "PIÑA",      emoji: "🍍" },
-    { upper: "O",  lower: "o",  word: "OSO",       emoji: "🐻" },
-    { upper: "P",  lower: "p",  word: "PATO",      emoji: "🦆" },
-    { upper: "Q",  lower: "q",  word: "QUESO",     emoji: "🧀" },
-    { upper: "R",  lower: "r",  word: "RANA",      emoji: "🐸" },
-    { upper: "S",  lower: "s",  word: "SOL",       emoji: "☀️" },
-    { upper: "T",  lower: "t",  word: "TAZA",      emoji: "🍵" },
-    { upper: "U",  lower: "u",  word: "UVA",       emoji: "🍇" },
-    { upper: "V",  lower: "v",  word: "VACA",      emoji: "🐮" },
-    { upper: "W",  lower: "w",  word: "WIFI",      emoji: "📶" },
-    { upper: "X",  lower: "x",  word: "XILÓFONO",  emoji: "🎵" },
-    { upper: "Y",  lower: "y",  word: "YOYÓ",      emoji: "🪀", spell: "i griega" },
-    { upper: "Z",  lower: "z",  word: "ZORRO",     emoji: "🦊" },
+    { upper: "A",  lower: "a",  word: "ABEJA"     },
+    { upper: "B",  lower: "b",  word: "BARCO"     },
+    { upper: "C",  lower: "c",  word: "CASA"      },
+    { upper: "CH", lower: "ch", word: "CHOCOLATE", digraph: true, spell: "che" },
+    { upper: "D",  lower: "d",  word: "DEDO"      },
+    { upper: "E",  lower: "e",  word: "ELEFANTE" },
+    { upper: "F",  lower: "f",  word: "FLOR"      },
+    { upper: "G",  lower: "g",  word: "GATO"      },
+    { upper: "H",  lower: "h",  word: "HOJA"      },
+    { upper: "I",  lower: "i",  word: "ISLA"      },
+    { upper: "J",  lower: "j",  word: "JIRAFA"    },
+    { upper: "K",  lower: "k",  word: "KIWI"      },
+    { upper: "L",  lower: "l",  word: "LUNA"      },
+    { upper: "LL", lower: "ll", word: "LLAVE",     digraph: true },
+    { upper: "M",  lower: "m",  word: "MANO"      },
+    { upper: "N",  lower: "n",  word: "NUBE"      },
+    { upper: "Ñ",  lower: "ñ",  word: "PIÑA"      },
+    { upper: "O",  lower: "o",  word: "OSO"       },
+    { upper: "P",  lower: "p",  word: "PATO"      },
+    { upper: "Q",  lower: "q",  word: "QUESO"     },
+    { upper: "R",  lower: "r",  word: "RANA"      },
+    { upper: "S",  lower: "s",  word: "SOL"       },
+    { upper: "T",  lower: "t",  word: "TÉ"        },
+    { upper: "U",  lower: "u",  word: "UVA"       },
+    { upper: "V",  lower: "v",  word: "VACA"      },
+    { upper: "W",  lower: "w",  word: "WIFI"      },
+    { upper: "X",  lower: "x",  word: "XILÓFONO" },
+    { upper: "Y",  lower: "y",  word: "YOYÓ",      spell: "i griega" },
+    { upper: "Z",  lower: "z",  word: "ZORRO"     },
   ];
 
-  const VOWELS = ["A", "E", "I", "O", "U"];
-
+  // Validamos la forma del fichero ANTES de hidratar — el schema describe
+  // los campos que ESTE fichero declara, no lo que se añadirá después
+  // desde el diccionario.
   window.SUPEINGO_VALIDATE(SCHEMA, DATA);
   window.SUPEINGO_REGISTER("alphabet", SCHEMA, DATA);
 
+  // Hidratar emoji/svg/sílabas desde el diccionario. Cada `word` DEBE
+  // existir allí; si no, lo registramos como error en consola para
+  // que se note durante el desarrollo.
+  const dict = window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionaryByWord;
+  if (!dict) {
+    console.error("[supeingo:alphabet] dictionary no cargado — carga data/dictionary.js antes que data/alphabet.js.");
+  } else {
+    const missing = [];
+    for (const e of DATA) {
+      const d = dict[e.word];
+      if (!d) { missing.push(e.word); continue; }
+      if (d.emoji)     e.emoji     = d.emoji;
+      if (d.svg)       e.svg       = d.svg;
+      if (d.syllables) e.syllables = d.syllables;
+    }
+    if (missing.length) {
+      console.error(`[supeingo:alphabet] palabras no encontradas en el diccionario: ${missing.join(", ")}`);
+    }
+  }
+
   window.SUPEINGO_CONTENT = window.SUPEINGO_CONTENT || {};
   window.SUPEINGO_CONTENT.alphabet = DATA;
-  window.SUPEINGO_CONTENT.vowels = VOWELS;
 })();

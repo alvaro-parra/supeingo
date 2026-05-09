@@ -1,81 +1,113 @@
-// Palabras para "Forma la palabra" (Constructor de palabras).
-// Sección: Jugar → Forma la palabra.
+// Palabras para "Forma palabras" (Constructor de palabras).
+// Sección: Jugar → Forma palabras.
 //
-// Mezcla de 1-5 sílabas; las de 2 sílabas dominan al ser las más
-// sencillas y las que más aparecerán en una sesión barajada.
+// Este fichero es una capa fina sobre data/dictionary.js: solo elige
+// qué palabras del diccionario entran al juego y declara los
+// distractores ("decoys") obligatorios para cada una. El emoji y el
+// silabeo viven en el diccionario, no aquí — para no duplicar.
+//
+// Decoys: sílabas confusas que SIEMPRE aparecen en el banco junto a las
+// correctas. Sirven para forzar parejas que cuestan (LE/RE, BA/VA, J/G,
+// S/Z, LL/Y, M/N final, K/C/Q…). El resto del banco hasta 9 sílabas se
+// rellena con sílabas al azar de otras palabras.
 
 (function () {
+  // Schema del fichero ANTES de hidratar (lo que escribimos a mano).
   const SCHEMA = {
     name: "words",
     fields: {
-      word: { type: "string", required: true },
-      syllables: { type: "array", of: { type: "string" }, required: true },
-      emoji: { type: "string", required: true },
-      // Sílabas distractoras OBLIGATORIAS — siempre aparecen en el banco
-      // de esta palabra junto a las correctas. Útil para forzar parejas
-      // confusas (LE/RE, BA/VA, J/G, S/Z, LL/Y…) y enseñar a discriminarlas.
-      // El resto del banco hasta 9 sílabas se rellena con distractoras al azar.
+      word:   { type: "string", required: true },
       decoys: { type: "array", of: { type: "string" }, required: false },
     },
   };
 
-  const DATA = [
+  const ENTRIES = [
     // 1 sílaba
-    { word: "PEZ",  syllables: ["PEZ"],  emoji: "🐟", decoys: ["PES"] },
-    { word: "PIE",  syllables: ["PIE"],  emoji: "🦶" },
-    { word: "FLOR", syllables: ["FLOR"], emoji: "🌸", decoys: ["FLOL"] },
-    { word: "SOL",  syllables: ["SOL"],  emoji: "☀️", decoys: ["SOR"] },
-    { word: "PAN",  syllables: ["PAN"],  emoji: "🍞", decoys: ["PAM"] },
+    { word: "PEZ",  decoys: ["PES"] },
+    { word: "PIE" },
+    { word: "FLOR", decoys: ["FLOL"] },
+    { word: "SOL",  decoys: ["SOR"] },
+    { word: "PAN",  decoys: ["PAM"] },
+    { word: "TÉ",  decoys: ["TE"] },
     // 2 sílabas — núcleo del banco
-    { word: "GATO",  syllables: ["GA", "TO"],  emoji: "🐱", decoys: ["JA"] },
-    { word: "PATO",  syllables: ["PA", "TO"],  emoji: "🦆" },
-    { word: "OSO",   syllables: ["O", "SO"],   emoji: "🐻", decoys: ["ZO", "HO"] },
-    { word: "LUNA",  syllables: ["LU", "NA"],  emoji: "🌙", decoys: ["RU", "MA"] },
-    { word: "CASA",  syllables: ["CA", "SA"],  emoji: "🏠", decoys: ["KA", "ZA"] },
-    { word: "PIÑA",  syllables: ["PI", "ÑA"],  emoji: "🍍", decoys: ["NA"] },
-    { word: "MANO",  syllables: ["MA", "NO"],  emoji: "✋", decoys: ["MO", "NA"] },
-    { word: "PERRO", syllables: ["PE", "RRO"], emoji: "🐶", decoys: ["RO", "LO", "LLO"] },
-    { word: "RANA",  syllables: ["RA", "NA"],  emoji: "🐸", decoys: ["LA", "MA"] },
-    { word: "VACA",  syllables: ["VA", "CA"],  emoji: "🐮", decoys: ["BA", "KA"] },
-    { word: "SILLA", syllables: ["SI", "LLA"], emoji: "🪑", decoys: ["ZI", "YA"] },
-    { word: "OJO",   syllables: ["O", "JO"],   emoji: "👁️", decoys: ["HO", "GO"] },
-    { word: "BOCA",  syllables: ["BO", "CA"],  emoji: "👄", decoys: ["VO", "KA"] },
-    { word: "HOJA",  syllables: ["HO", "JA"],  emoji: "🍃", decoys: ["O", "GA"] },
-    { word: "QUESO", syllables: ["QUE", "SO"], emoji: "🧀", decoys: ["ZO", "KE"] },
-    { word: "TAZA",  syllables: ["TA", "ZA"],  emoji: "🍵", decoys: ["SA"] },
-    { word: "DEDO",  syllables: ["DE", "DO"],  emoji: "👆" },
-    { word: "NUBE",  syllables: ["NU", "BE"],  emoji: "☁️", decoys: ["VE"] },
-    { word: "LLAVE", syllables: ["LLA", "VE"], emoji: "🔑", decoys: ["YA", "BE"] },
-    { word: "BOTA",  syllables: ["BO", "TA"],  emoji: "👢", decoys: ["VO"] },
-    { word: "FOCA",  syllables: ["FO", "CA"],  emoji: "🦭" },
-    { word: "TORO",  syllables: ["TO", "RO"],  emoji: "🐂", decoys: ["LO"] },
-    { word: "LOBO",  syllables: ["LO", "BO"],  emoji: "🐺", decoys: ["RO", "VO"] },
-    { word: "LIBRO", syllables: ["LI", "BRO"], emoji: "📕", decoys: ["RI", "BLO"] },
-    { word: "BARCO", syllables: ["BAR", "CO"], emoji: "⛵", decoys: ["VAL", "BAL", "VAR"] },
+    { word: "GATO",  decoys: ["JA"] },
+    { word: "PATO" },
+    { word: "OSO",   decoys: ["ZO", "HO"] },
+    { word: "LUNA",  decoys: ["RU", "MA"] },
+    { word: "CASA",  decoys: ["KA", "ZA"] },
+    { word: "PIÑA",  decoys: ["NA"] },
+    { word: "MANO",  decoys: ["MO", "NA"] },
+    { word: "PERRO", decoys: ["RO", "LO", "LLO"] },
+    { word: "RANA",  decoys: ["LA", "MA"] },
+    { word: "VACA",  decoys: ["BA", "KA"] },
+    { word: "SILLA", decoys: ["ZI", "YA"] },
+    { word: "OJO",   decoys: ["HO", "GO"] },
+    { word: "BOCA",  decoys: ["VO", "KA"] },
+    { word: "HOJA",  decoys: ["O", "GA"] },
+    { word: "QUESO", decoys: ["ZO", "KE"] },
+    { word: "DEDO" },
+    { word: "NUBE",  decoys: ["VE"] },
+    { word: "LLAVE", decoys: ["YA", "BE"] },
+    { word: "BOTA",  decoys: ["VO"] },
+    { word: "FOCA" },
+    { word: "TORO",  decoys: ["LO"] },
+    { word: "LOBO",  decoys: ["RO", "VO"] },
+    { word: "LIBRO", decoys: ["RI", "BLO"] },
+    { word: "BARCO", decoys: ["VAL", "BAL", "VAR"] },
     // 3 sílabas
-    { word: "CARACOL", syllables: ["CA", "RA", "COL"],  emoji: "🐌", decoys: ["LA"] },
-    { word: "PLÁTANO", syllables: ["PLÁ", "TA", "NO"],  emoji: "🍌" },
-    { word: "JIRAFA",  syllables: ["JI", "RA", "FA"],   emoji: "🦒", decoys: ["GI", "LA"] },
-    { word: "ABEJA",   syllables: ["A", "BE", "JA"],    emoji: "🐝", decoys: ["VE"] },
-    { word: "ZAPATO",  syllables: ["ZA", "PA", "TO"],   emoji: "👞" },
-    { word: "MANZANA", syllables: ["MAN", "ZA", "NA"],  emoji: "🍎", decoys: ["SA"] },
-    { word: "TOMATE",  syllables: ["TO", "MA", "TE"],   emoji: "🍅" },
-    { word: "POLLITO", syllables: ["PO", "LLI", "TO"],  emoji: "🐤" },
-    { word: "CONEJO",  syllables: ["CO", "NE", "JO"],   emoji: "🐰" },
-    { word: "TORTUGA", syllables: ["TOR", "TU", "GA"],  emoji: "🐢" },
-    { word: "GUITARRA",syllables: ["GUI", "TA", "RRA"], emoji: "🎸" },
-    { word: "BALLENA", syllables: ["BA", "LLE", "NA"],  emoji: "🐳", decoys: ["VA", "YE"] },
+    { word: "CARACOL", decoys: ["LA"] },
+    { word: "PLÁTANO" },
+    { word: "JIRAFA",  decoys: ["GI", "LA"] },
+    { word: "ABEJA",   decoys: ["VE"] },
+    { word: "ZAPATO" },
+    { word: "MANZANA", decoys: ["SA"] },
+    { word: "TOMATE" },
+    { word: "POLLITO" },
+    { word: "CONEJO" },
+    { word: "TORTUGA" },
+    { word: "GUITARRA" },
+    { word: "BALLENA", decoys: ["VA", "YE"] },
     // 4 sílabas
-    { word: "MARIPOSA", syllables: ["MA", "RI", "PO", "SA"], emoji: "🦋", decoys: ["LI"] },
-    { word: "ELEFANTE", syllables: ["E", "LE", "FAN", "TE"], emoji: "🐘", decoys: ["RE"] },
-    { word: "PARAGUAS", syllables: ["PA", "RA", "GUAS"],     emoji: "☂️", decoys: ["LA"] },
+    { word: "COCODRILO", decoys: ["GO", "TRI"] },
+    { word: "MARIPOSA", decoys: ["LI"] },
+    { word: "ELEFANTE", decoys: ["RE"] },
+    { word: "PARAGUAS", decoys: ["LA"] },
     // 5 sílabas
-    { word: "HELICÓPTERO", syllables: ["HE", "LI", "CÓP", "TE", "RO"], emoji: "🚁", decoys: ["RI", "LO"] },
+    { word: "HELICÓPTERO", decoys: ["RI", "LO"] },
   ];
 
-  window.SUPEINGO_VALIDATE(SCHEMA, DATA);
-  window.SUPEINGO_REGISTER("words", SCHEMA, DATA);
+  // Validamos la forma del fichero (pre-hidratación).
+  window.SUPEINGO_VALIDATE(SCHEMA, ENTRIES);
+
+  // Hidratamos juntando cada entrada con la del diccionario para que
+  // los consumidores reciban {word, syllables, emoji, decoys} igual
+  // que antes — sin duplicar el emoji ni el silabeo en este fichero.
+  const dict = (window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionaryByWord) || {};
+  const missing = [];
+  const HYDRATED = ENTRIES.map(e => {
+    const d = dict[e.word];
+    if (!d) { missing.push(e.word); return null; }
+    return {
+      word: d.word,
+      syllables: d.syllables,
+      emoji: d.emoji,
+      svg: d.svg,           // opcional — el renderer lo prefiere si existe
+      decoys: e.decoys || [],
+    };
+  }).filter(Boolean);
+
+  if (missing.length) {
+    console.error(
+      `[supeingo:words] ${missing.length} palabra(s) no están en data/dictionary.js — añádelas allí primero:`,
+      missing
+    );
+  }
+
+  // Registramos la versión PRE-hidratación en CONTENT_META para que el
+  // schema cuadre (los tests validarán {word, decoys?}, no la forma
+  // hidratada). El runtime sí usa la hidratada en SUPEINGO_CONTENT.words.
+  window.SUPEINGO_REGISTER("words", SCHEMA, ENTRIES);
 
   window.SUPEINGO_CONTENT = window.SUPEINGO_CONTENT || {};
-  window.SUPEINGO_CONTENT.words = DATA;
+  window.SUPEINGO_CONTENT.words = HYDRATED;
 })();
