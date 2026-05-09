@@ -267,12 +267,10 @@ function GuessWord({ onBack, debug = false }) {
         syllables: target.syllables,
         emoji: target.emoji,
         svg: target.svg,
-        // Métrica del juego: pistas usadas, no intentos. 0-3 hints
-        // (las "blandas": cat/tamaño/color) mapean a `attempts:1` para
-        // reusar el badge "perfect" del CompletedChip; 4+ hints (ya
-        // se reveló primera sílaba o silueta) van como `attempts:hintsUsed`.
-        attempts: hintsUsed <= 3 ? 1 : hintsUsed,
-        hintsUsed,
+        // Este juego siempre termina en éxito (los distractores se purgan
+        // hasta dejar solo las correctas), así que cada palabra acertada
+        // saca el ✓ del CompletedChip — sin métrica de pistas/intentos.
+        attempts: 1,
       };
 
       setTimeout(() => {
@@ -886,8 +884,7 @@ function ChipMini({ entry }) {
 
 // ──────────────────────────────────────────────────────────────
 // Pantalla fin de sesión — clon de MemorySessionComplete.
-// El badge per-chip aparece como "perfect" cuando hintsUsed <= 3,
-// gracias al truco en el record (attempts: 1 si pocas pistas).
+// Cada chip sale con ✓ porque el juego siempre termina acertando.
 // ──────────────────────────────────────────────────────────────
 function GuessWordSessionComplete({ completed, onPlayAgain, onBack }) {
   const [confettiOn, setConfettiOn] = useState(true);
