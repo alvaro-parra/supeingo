@@ -260,8 +260,12 @@ function CardBack() {
 // + palabra silabeada. Refuerza la asociación palabra/imagen antes
 // de que la pareja vuele a la lista de acertadas.
 function MatchReveal({ entry }) {
+  // Auto-shrink en escalones: palabras como ZANAHORIA (12) se ajustan
+  // bastante; las muy largas (HELICÓPTERO, MURCIÉLAGO ≥15) bajan más
+  // para que no toquen los bordes en móvil.
   const _vlen = entry.word.length + Math.max(0, entry.syllables.length - 1);
-  const fontPx = _vlen <= 9 ? 36 : _vlen <= 12 ? 30 : 26;
+  const fontPx = _vlen <= 8 ? 36 : _vlen <= 11 ? 30 : _vlen <= 14 ? 24 : 20;
+  const imgSize = _vlen <= 14 ? 72 : 56;
   return (
     <div
       aria-hidden
@@ -273,6 +277,7 @@ function MatchReveal({ entry }) {
         justifyContent: "center",
         zIndex: 70,
         pointerEvents: "none",
+        padding: "var(--space-4)",
         animation: "chip-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1)",
       }}>
       <div style={{
@@ -284,16 +289,27 @@ function MatchReveal({ entry }) {
         display: "flex",
         alignItems: "center",
         gap: "var(--space-4)",
-        maxWidth: "min(90vw, 460px)",
+        maxWidth: "min(95vw, 460px)",
+        boxSizing: "border-box",
       }}>
-        <WordImage entry={entry} size={72} scale={false}/>
+        <div style={{ flexShrink: 0 }}>
+          <WordImage entry={entry} size={imgSize} scale={false}/>
+        </div>
         <span style={{
+          flex: 1,
+          minWidth: 0,
           fontFamily: "Andika, Fredoka, sans-serif",
           fontWeight: 700,
           fontSize: `calc(${fontPx}px * var(--scale))`,
           letterSpacing: "0.03em",
           color: "var(--ink)",
-          lineHeight: 1.1,
+          lineHeight: 1.15,
+          // Permitimos wrap por si aun así no cabe (palabras muy largas
+          // con escala grande). Se parte entre sílabas, nunca dentro.
+          display: "inline-flex",
+          flexWrap: "wrap",
+          alignItems: "baseline",
+          gap: "0 0.05em",
         }}>
           {entry.syllables.map((s, i) => (
             <React.Fragment key={i}>
@@ -301,7 +317,6 @@ function MatchReveal({ entry }) {
               {i < entry.syllables.length - 1 && (
                 <span aria-hidden style={{
                   color: "var(--ink-faint)", fontWeight: 500,
-                  margin: "0 0.05em",
                 }}>·</span>
               )}
             </React.Fragment>
