@@ -2,7 +2,8 @@
 
 function PlayMenu({ onBack, onPick }) {
   const games = [
-    { id: "builder", name: "Forma palabras", subtitle: "Ordena las sílabas", color: "accent", emoji: "🧩", ready: true },
+    { id: "builder", name: "Forma palabras",     subtitle: "Ordena las sílabas", color: "accent", emoji: "🧩", ready: true },
+    { id: "find",    name: "Encuentra el dibujo", subtitle: "Lee y elige",         color: "ok",     emoji: "🔍", ready: true },
     { id: "memory",  name: "Memoria",        subtitle: "Empareja parejas",   color: "secondary", emoji: "🃏", ready: false },
     { id: "match",   name: "Emparejar",      subtitle: "Imagen y palabra",   color: "warn", emoji: "🔗", ready: false },
     { id: "fill",    name: "Rellena hueco",  subtitle: "Falta una sílaba",  color: "ok", emoji: "✏️", ready: false },

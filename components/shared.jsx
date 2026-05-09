@@ -431,7 +431,14 @@ function HelpButton({ hint }) {
 // ------------------------------------------------------------
 // Indicador de audio — botón altavoz con ondas animadas
 // ------------------------------------------------------------
-function SpeakButton({ text, label = "Escuchar", size = 64, variant = "primary", kind }) {
+// SpeakButton — botón de altavoz con ondas animadas.
+// Acepta `triggerRef`: una ref a la que se asigna la función que dispara
+// la pronunciación + la animación, para que un contenedor padre pueda
+// activarla desde un click fuera (p.ej., el card de la imagen entera).
+const SpeakButton = React.forwardRef(function SpeakButton(
+  { text, label = "Escuchar", size = 64, variant = "primary", kind, triggerRef },
+  ref
+) {
   const [playing, setPlaying] = useState(false);
 
   const handle = () => {
@@ -440,12 +447,20 @@ function SpeakButton({ text, label = "Escuchar", size = 64, variant = "primary",
     setTimeout(() => setPlaying(false), 1200);
   };
 
+  // Exponer `handle` para activación externa. Reasignamos en cada render
+  // para que la closure capture el `text`/`kind` actuales.
+  useEffect(() => {
+    if (triggerRef) triggerRef.current = handle;
+    return () => { if (triggerRef && triggerRef.current === handle) triggerRef.current = null; };
+  });
+
   const bg = variant === "ghost" ? "transparent" : "var(--surface)";
   const border = variant === "ghost" ? "none" : "3px solid var(--ink)";
 
   return (
     <button
-      onClick={handle}
+      ref={ref}
+      onClick={(e) => { e.stopPropagation(); handle(); }}
       aria-label={`${label}: ${text}`}
       style={{
         width: size, height: size,
@@ -475,13 +490,17 @@ function SpeakButton({ text, label = "Escuchar", size = 64, variant = "primary",
           position: "absolute", inset: -4,
           borderRadius: "50%",
           border: "3px solid var(--accent)",
-          animation: "ping 800ms ease-out",
+          // `forwards` mantiene el estado final del keyframe (opacity:0,
+          // scale 2.4) hasta que el span desaparece al apagarse `playing`.
+          // Sin esto, tras los 800ms de animación el span volvía un instante
+          // al tamaño original antes de unmount → el "doble flash" feo.
+          animation: "ping 800ms ease-out forwards",
           pointerEvents: "none",
         }}/>
       )}
     </button>
   );
-}
+});
 
 // ------------------------------------------------------------
 // Estrella de recompensa

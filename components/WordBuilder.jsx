@@ -157,6 +157,9 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
   // Sílabas (por id de pool) ocultadas para reducir dificultad tras 3 fallos.
   // Se resetea al cambiar de palabra. Empezamos a esconder a partir del 4º intento.
   const [hiddenIds, setHiddenIds] = useState(new Set());
+  // Ref expuesta por SpeakButton: nos permite disparar la pronunciación
+  // (con su animación) desde el click en cualquier parte del card.
+  const speakRef = useRef(null);
   // Reset al cambiar de palabra: dificultad arranca de cero en cada palabra nueva.
   useEffect(() => { setHiddenIds(new Set()); }, [target.word]);
 
@@ -297,22 +300,49 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
         }
       />
 
-      {/* Imagen + altavoz — fila compacta para no comer alto en móvil */}
-      <div style={{
-        margin: "var(--space-3) var(--space-4) var(--space-3)",
-        background: "var(--surface)",
-        border: "3px solid var(--ink)",
-        borderRadius: "var(--r-xl)",
-        boxShadow: "var(--shadow-md)",
-        padding: "var(--space-3) var(--space-4)",
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "var(--space-4)",
-        position: "relative",
-        zIndex: 2,
-      }}>
+      {/* Imagen + altavoz — todo el card es pulsable: clic en cualquier
+          parte hace que la palabra se pronuncie. El altavoz se anima
+          igual aunque pulses fuera de él, para que quede claro que el
+          sonido sale de ahí. */}
+      <button
+        type="button"
+        onClick={() => speakRef.current && speakRef.current()}
+        aria-label={`Escuchar ${target.word}`}
+        style={{
+          margin: "var(--space-3) var(--space-4) var(--space-3)",
+          background: "var(--surface)",
+          border: "3px solid var(--ink)",
+          borderRadius: "var(--r-xl)",
+          boxShadow: "var(--shadow-md)",
+          padding: "var(--space-3) var(--space-4)",
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "var(--space-4)",
+          position: "relative",
+          zIndex: 2,
+          width: "calc(100% - var(--space-4) * 2)",
+          cursor: "pointer",
+          transition: "transform 120ms ease, box-shadow 120ms ease",
+        }}
+        onPointerDown={e => {
+          e.currentTarget.style.transform = "translateY(2px)";
+          e.currentTarget.style.boxShadow = "0 2px 0 rgba(42,42,51,0.12)";
+        }}
+        onPointerUp={e => {
+          e.currentTarget.style.transform = "";
+          e.currentTarget.style.boxShadow = "var(--shadow-md)";
+        }}
+        onPointerLeave={e => {
+          e.currentTarget.style.transform = "";
+          e.currentTarget.style.boxShadow = "var(--shadow-md)";
+        }}
+        onPointerCancel={e => {
+          e.currentTarget.style.transform = "";
+          e.currentTarget.style.boxShadow = "var(--shadow-md)";
+        }}
+      >
         <div
           id="wb-emoji"
           style={{
@@ -327,8 +357,8 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
           }}
           aria-hidden
         ><WordImage entry={target} size={64}/></div>
-        <SpeakButton text={target.word} size={48}/>
-      </div>
+        <SpeakButton text={target.word} size={48} triggerRef={speakRef}/>
+      </button>
 
       {/* Zona de respuesta — sin pistas sobre cuántas sílabas hay */}
       <AnswerArea
@@ -1202,4 +1232,17 @@ function ActionButton({ children, onClick, disabled, variant = "primary", icon =
   );
 }
 
-window.WordBuilder = WordBuilder;
+// Exportamos también los helpers reutilizables para que otros juegos
+// (FindPicture, etc.) los usen sin redefinir. Cada `<script type="text/babel">`
+// vive en su propio scope tras la transpilación.
+Object.assign(window, {
+  WordBuilder,
+  playFeedback,
+  SessionProgress,
+  CompletedList,
+  CompletedChip,
+  AttemptsBadge,
+  FlyingChip,
+  SessionComplete,
+  DebugWordPicker,
+});

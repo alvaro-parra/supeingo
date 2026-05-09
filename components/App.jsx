@@ -6,6 +6,7 @@
 const HELP_HINTS = {
   play:    "Elige un juego. Empieza por Forma palabras, es el más fácil.",
   builder: "Mira la imagen y escucha la palabra. Pulsa las sílabas en orden para formarla.",
+  find:    "Escucha la palabra y mira las sílabas. Toca el dibujo que coincide.",
 };
 
 function App() {
@@ -30,9 +31,12 @@ function App() {
   } else if (route === "play") {
     screen = <PlayMenu onBack={() => setRoute("home")} onPick={(id) => {
       if (id === "builder") setRoute("builder");
+      else if (id === "find") setRoute("find");
     }}/>;
   } else if (route === "builder") {
     screen = <WordBuilder onBack={() => setRoute("play")} debug={!!settings.debug}/>;
+  } else if (route === "find") {
+    screen = <FindPicture onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   }
 
   const showChrome = route !== "settings";

@@ -3,34 +3,93 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<!-- Cache-busting: el HTML siempre se revalida; los assets locales
+     llevan ?v=… que se bumpea en cada deploy (ver constante de abajo). -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>Supeingo — Aprende español jugando</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Andika:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
 
-<link rel="stylesheet" href="styles/base.css"/>
+<link rel="stylesheet" href="styles/base.css?v=1"/>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-<script src="data/validate.js"></script>
+<!-- ─── Cache-busting ───────────────────────────────────────────
+     GitHub Pages cachea con max-age=600. Para invalidar al instante,
+     bumpea ?v=N en cada asset local cuando hagas deploy con cambios.
+     Las CDN externas (unpkg) ya están pinneadas por versión + integrity. -->
+<script src="data/validate.js?v=1"></script>
 <!-- dictionary primero: alphabet.js hidrata sus emojis/sílabas desde aquí -->
-<script src="data/dictionary.js"></script>
-<script src="data/alphabet.js"></script>
-<script src="data/words.js"></script>
-<script src="data/syllableFamilies.js"></script>
+<script src="data/dictionary.js?v=1"></script>
+<script src="data/alphabet.js?v=1"></script>
+<script src="data/words.js?v=1"></script>
+<script src="data/syllableFamilies.js?v=1"></script>
 </head>
 <body>
 <div id="app"></div>
 
-<script type="text/babel" src="components/shared.jsx"></script>
-<script type="text/babel" src="components/Home.jsx"></script>
-<script type="text/babel" src="components/LearnArea.jsx"></script>
-<script type="text/babel" src="components/PlayMenu.jsx"></script>
-<script type="text/babel" src="components/WordBuilder.jsx"></script>
-<script type="text/babel" src="components/Settings.jsx"></script>
-<script type="text/babel" src="components/App.jsx"></script>
+<!--
+  Diagnóstico móvil: si algo falla antes de que React monte, queda un
+  rastro visible en la propia página. Pinta los errores en un overlay
+  en la parte inferior (rojo = error, naranja = warning). Útil sobre
+  todo en Chrome Android, donde no se puede abrir consola sin USB.
+  Se quita solo cuando React monta correctamente.
+-->
+<div id="boot-log" style="
+  position: fixed; left: 0; right: 0; bottom: 0;
+  max-height: 50vh; overflow: auto;
+  background: rgba(20,20,24,0.95); color: #f4f4f6;
+  font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  padding: 8px 12px; z-index: 99999;
+  border-top: 2px solid #fda4af;
+  display: none;
+"></div>
+<script>
+(function () {
+  var box = document.getElementById("boot-log");
+  function show() { if (box) box.style.display = "block"; }
+  function add(kind, msg) {
+    show();
+    var line = document.createElement("div");
+    line.style.color = kind === "error" ? "#fca5a5" : "#fcd34d";
+    line.style.padding = "2px 0";
+    line.style.borderBottom = "1px dashed #3a3a45";
+    line.textContent = "[" + kind + "] " + msg;
+    box.appendChild(line);
+  }
+  window.addEventListener("error", function (e) {
+    var src = e.filename ? e.filename.split("/").pop() : "";
+    add("error", (e.message || "Error") + (src ? " — " + src + ":" + (e.lineno || "?") : ""));
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    add("error", "Promise rechazada: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+  });
+  // Si tras 8s seguimos sin nada renderizado, avisamos.
+  setTimeout(function () {
+    var app = document.getElementById("app");
+    if (app && !app.firstChild) {
+      add("warn", "La app no se ha montado en 8s. Babel transpilando o algún script bloqueado.");
+    } else if (box) {
+      // Todo OK — ocultamos el overlay.
+      box.style.display = "none";
+    }
+  }, 8000);
+})();
+</script>
+
+<script type="text/babel" src="components/shared.jsx?v=1"></script>
+<script type="text/babel" src="components/Home.jsx?v=1"></script>
+<script type="text/babel" src="components/LearnArea.jsx?v=1"></script>
+<script type="text/babel" src="components/PlayMenu.jsx?v=1"></script>
+<script type="text/babel" src="components/WordBuilder.jsx?v=1"></script>
+<script type="text/babel" src="components/FindPicture.jsx?v=1"></script>
+<script type="text/babel" src="components/Settings.jsx?v=1"></script>
+<script type="text/babel" src="components/App.jsx?v=1"></script>
 </body>
 </html>
