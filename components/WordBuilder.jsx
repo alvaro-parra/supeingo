@@ -943,7 +943,7 @@ function Trophy({ size = 160 }) {
       animation: "trophy-in 700ms cubic-bezier(0.34, 1.56, 0.64, 1)",
       filter: "drop-shadow(0 6px 0 var(--ink))",
     }}>
-      <svg viewBox="0 0 200 220" width="100%" height="auto" aria-hidden>
+      <svg viewBox="0 0 200 220" width="100%" style={{ height: "auto" }} aria-hidden>
         {/* asas */}
         <path d="M 50 50 Q 20 50 20 80 Q 20 110 55 115"
           fill="none" stroke="var(--ink)" strokeWidth="6" strokeLinecap="round"/>
