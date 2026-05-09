@@ -72,6 +72,10 @@ function FindPicture({ onBack, debug = false }) {
   const [idx, setIdx] = useState(0);
   const sessionDone = idx >= session.length;
   const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null };
+  // Auto-shrink discreto del rótulo según longitud (letras + separadores ·)
+  // para que palabras como ZANAHORIA o HELICÓPTERO no toquen los bordes.
+  const _vlen = target.word.length + Math.max(0, target.syllables.length - 1);
+  const targetFontPx = _vlen <= 9 ? 34 : _vlen <= 12 ? 28 : 24;
 
   const [completed, setCompleted] = useState([]);
   const [attempts, setAttempts] = useState(1);
@@ -215,7 +219,7 @@ function FindPicture({ onBack, debug = false }) {
           flex: 1,
           fontFamily: "Andika, Fredoka, sans-serif",
           fontWeight: 700,
-          fontSize: "calc(34px * var(--scale))",
+          fontSize: `calc(${targetFontPx}px * var(--scale))`,
           lineHeight: 1.1,
           letterSpacing: "0.03em",
           color: "var(--ink)",
@@ -235,7 +239,7 @@ function FindPicture({ onBack, debug = false }) {
             </React.Fragment>
           ))}
         </span>
-        <SpeakButton text={target.word} size={48} triggerRef={speakRef}/>
+        <SpeakButton text={target.word} size={40} triggerRef={speakRef}/>
       </button>
 
       {/* Cuadrícula 3×2 de dibujos — envuelta en el mismo recuadro
