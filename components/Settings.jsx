@@ -9,7 +9,6 @@ const SETTINGS_KEY = "supeingo:settings:v1";
 
 const SETTINGS_DEFAULTS = {
   voiceURI: null,   // null = auto (la mejor voz española disponible)
-  scale: 1.1,       // 0.9 - 1.4
   includeDigraphs: true, // incluir CH y LL como letras (enseñanza tradicional)
   // "debug" antes era "ttsDebug" (solo logs de TTS). Ahora es un modo
   // depuración general: TTS log + selector de palabra en Forma palabras.
@@ -40,8 +39,10 @@ function saveSettings(s) {
 function applySettings(s) {
   // Audio: la función speak() lo lee de window.SUPEINGO_AUDIO_CONFIG
   window.SUPEINGO_AUDIO_CONFIG = { voiceURI: s.voiceURI };
-  // Tamaño: variable CSS aplicada al root
-  document.documentElement.style.setProperty("--scale", String(s.scale));
+  // Tamaño: var CSS fija a 1 — la opción de escala se eliminó del menú.
+  // Mantenemos --scale para que los `calc(... * var(--scale))` sigan
+  // resolviendo, pero ya no es configurable.
+  document.documentElement.style.setProperty("--scale", "1");
   // Pedagogía
   window.SUPEINGO_TEACHING_CONFIG = {
     includeDigraphs: !!s.includeDigraphs,
@@ -162,9 +163,9 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
           padding: "0 var(--space-4) var(--space-4)",
           position: "relative", zIndex: 2,
         }}>
-          <MascotHint size={56} mood="happy">
+          <HelperHint size={56} mood="happy">
             Configura el sonido y el tamaño. Podrás cambiarlo en cualquier momento.
-          </MascotHint>
+          </HelperHint>
         </div>
       )}
 
@@ -215,60 +216,6 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
         }}>
           El volumen se ajusta con los botones del dispositivo.
         </p>
-      </Section>
-
-      {/* Sección: Tamaño */}
-      <Section title="Tamaño de elementos" icon={<SizeIcon/>}>
-        <Field label="Escala">
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 14, fontFamily: "Andika, Fredoka, sans-serif", fontWeight: 700 }}>A</span>
-            <input
-              type="range"
-              min={0.9} max={1.4} step={0.05}
-              value={settings.scale}
-              onChange={e => onChange({ scale: parseFloat(e.target.value) })}
-              style={sliderStyle}
-            />
-            <span style={{ fontSize: 26, fontFamily: "Andika, Fredoka, sans-serif", fontWeight: 700 }}>A</span>
-            <span style={valueChip}>{Math.round(settings.scale * 100)}%</span>
-          </div>
-        </Field>
-
-        {/* Vista previa */}
-        <div style={{
-          marginTop: "var(--space-3)",
-          background: "var(--bg-2)",
-          border: "3px solid var(--ink)",
-          borderRadius: "var(--r-lg)",
-          padding: "var(--space-4)",
-          display: "flex", alignItems: "center", gap: "var(--space-4)",
-        }}>
-          <div style={{
-            width: "calc(72px * var(--scale))",
-            height: "calc(72px * var(--scale))",
-            background: "var(--accent)",
-            border: "3px solid var(--ink)",
-            borderRadius: "var(--r-md)",
-            boxShadow: "0 4px 0 var(--ink)",
-            display: "grid", placeItems: "center",
-            fontSize: "calc(34px * var(--scale))",
-            fontWeight: 700,
-            fontFamily: "Andika, Fredoka, sans-serif",
-            transition: "all 200ms ease",
-          }}>A</div>
-          <div>
-            <div style={{
-              fontSize: "calc(18px * var(--scale))",
-              fontWeight: 700,
-              fontFamily: "Fredoka, sans-serif",
-            }}>Vista previa</div>
-            <div style={{
-              fontSize: "calc(14px * var(--scale))",
-              color: "var(--ink-soft)",
-              marginTop: 2,
-            }}>Así de grande se verá todo</div>
-          </div>
-        </div>
       </Section>
 
       {/* Sección: Aprendizaje */}
@@ -462,24 +409,6 @@ const bigPreviewBtnStyle = {
   cursor: "pointer",
 };
 
-const sliderStyle = {
-  flex: 1,
-  height: 8,
-  accentColor: "var(--accent-strong)",
-};
-
-const valueChip = {
-  fontSize: "calc(13px * var(--scale))",
-  fontWeight: 700,
-  fontFamily: "Fredoka, sans-serif",
-  background: "var(--bg-2)",
-  border: "2px solid var(--ink)",
-  borderRadius: 999,
-  padding: "2px 10px",
-  minWidth: 52,
-  textAlign: "center",
-};
-
 const warningStyle = {
   margin: 0,
   fontSize: "calc(13px * var(--scale))",
@@ -496,15 +425,6 @@ function AudioIcon() {
     <svg viewBox="0 0 24 24" width={22} height={22}>
       <path d="M 4 9 L 4 15 L 9 15 L 14 19 L 14 5 L 9 9 Z" fill="var(--ink)"/>
       <path d="M 17 8 Q 20 12 17 16" stroke="var(--ink)" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function SizeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width={22} height={22}>
-      <path d="M 4 18 L 10 6 L 16 18 M 6 14 L 14 14" stroke="var(--ink)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M 19 9 L 22 9 M 19 15 L 22 15 M 20.5 9 L 20.5 15" stroke="var(--ink)" strokeWidth="2" fill="none" strokeLinecap="round"/>
     </svg>
   );
 }

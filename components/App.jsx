@@ -4,9 +4,9 @@
 // Si una ruta no aparece aquí, el botón de ayuda no se muestra (la
 // pantalla se considera lo bastante autoexplicativa).
 const HELP_HINTS = {
-  play:    "Elige un juego. Empieza por Forma palabras, es el más fácil.",
   builder: "Mira la imagen y escucha la palabra. Pulsa las sílabas en orden para formarla.",
-  find:    "Escucha la palabra y mira las sílabas. Toca el dibujo que coincide.",
+  find:    "Mira las sílabas y escucha la palabra. Toca el dibujo que coincide.",
+  memory:  "Voltea dos cartas y busca las que son iguales.",
 };
 
 function App() {
@@ -25,18 +25,21 @@ function App() {
       isFirstTime={false}
     />;
   } else if (route === "home") {
-    screen = <Home onNav={setRoute} mascotOn={true} onSettings={goSettings}/>;
+    screen = <Home onNav={setRoute} helperOn={true} onSettings={goSettings}/>;
   } else if (route === "learn") {
     screen = <LearnArea onBack={() => setRoute("home")}/>;
   } else if (route === "play") {
     screen = <PlayMenu onBack={() => setRoute("home")} onPick={(id) => {
       if (id === "builder") setRoute("builder");
       else if (id === "find") setRoute("find");
+      else if (id === "memory") setRoute("memory");
     }}/>;
   } else if (route === "builder") {
     screen = <WordBuilder onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   } else if (route === "find") {
     screen = <FindPicture onBack={() => setRoute("play")} debug={!!settings.debug}/>;
+  } else if (route === "memory") {
+    screen = <Memory onBack={() => setRoute("play")}/>;
   }
 
   const showChrome = route !== "settings";

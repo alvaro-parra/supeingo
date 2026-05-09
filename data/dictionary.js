@@ -34,7 +34,7 @@
       emoji:     { type: "string", required: false },
       svg:       { type: "string", required: false },
       // Categoría para juegos que necesitan agrupar visualmente
-      // (p.ej. "Encuentra el dibujo" mezcla solo entradas del mismo
+      // (p.ej. "Busca el dibujo" mezcla solo entradas del mismo
       // grupo). Una de las claves listadas en CATEGORIES más abajo.
       category:  { type: "string", required: true },
     },

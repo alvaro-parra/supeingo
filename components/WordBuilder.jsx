@@ -280,7 +280,7 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
   // ── Pantalla de fin de sesión ─────────────────────────────
   if (sessionDone) {
     return (
-      <SessionComplete
+      <WordBuilderSessionComplete
         completed={completed}
         onPlayAgain={restartSession}
         onBack={onBack}
@@ -292,21 +292,26 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
     <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-6)" }}>
       <div className="bg-decor"/>
 
-      <ScreenHeader
-        title="Forma palabras"
-        onBack={onBack}
-        right={
-          <SessionProgress current={idx} total={session.length}/>
-        }
-      />
+      <ScreenHeader title="Forma palabras" onBack={onBack}/>
 
       {/* Imagen + altavoz — todo el card es pulsable: clic en cualquier
           parte hace que la palabra se pronuncie. El altavoz se anima
           igual aunque pulses fuera de él, para que quede claro que el
           sonido sale de ahí. */}
-      <button
-        type="button"
+      {/* Card pulsable. Usamos <div role="button"> en lugar de <button>
+          porque dentro va un SpeakButton (otro <button>) y HTML no
+          permite anidar buttons. Mantenemos accesibilidad con
+          tabIndex + onKeyDown. */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => speakRef.current && speakRef.current()}
+        onKeyDown={e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            speakRef.current && speakRef.current();
+          }
+        }}
         aria-label={`Escuchar ${target.word}`}
         style={{
           margin: "var(--space-3) var(--space-4) var(--space-3)",
@@ -323,6 +328,7 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
           position: "relative",
           zIndex: 2,
           width: "calc(100% - var(--space-4) * 2)",
+          boxSizing: "border-box",
           cursor: "pointer",
           transition: "transform 120ms ease, box-shadow 120ms ease",
         }}
@@ -358,7 +364,7 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
           aria-hidden
         ><WordImage entry={target} size={64}/></div>
         <SpeakButton text={target.word} size={48} triggerRef={speakRef}/>
-      </button>
+      </div>
 
       {/* Zona de respuesta — sin pistas sobre cuántas sílabas hay */}
       <AnswerArea
@@ -439,7 +445,7 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
 
       {/* Lista inferior de palabras conseguidas */}
       {completed.length > 0 && (
-        <CompletedList items={completed}/>
+        <CompletedList items={completed} total={session.length}/>
       )}
 
       {/* Animación de "vuelo" — la palabra acertada baja hacia la lista */}
@@ -638,7 +644,7 @@ function SessionProgress({ current, total }) {
 // ──────────────────────────────────────────────────────────────
 // Lista inferior de palabras acertadas — chips con sílabas y intentos
 // ──────────────────────────────────────────────────────────────
-function CompletedList({ items }) {
+function CompletedList({ items, total }) {
   return (
     <div
       id="wb-completed-list"
@@ -653,7 +659,7 @@ function CompletedList({ items }) {
         padding: "0 var(--space-5)",
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: 10,
         marginBottom: "var(--space-2)",
         color: "var(--ink-soft)",
         fontSize: "calc(12px * var(--scale))",
@@ -661,14 +667,15 @@ function CompletedList({ items }) {
         textTransform: "uppercase",
         letterSpacing: "0.08em",
       }}>
-        <span aria-hidden>🌱</span>
         <span>Acertadas</span>
-        <span style={{
-          color: "var(--ink-faint)",
-          fontWeight: 600,
-          textTransform: "none",
-          letterSpacing: 0,
-        }}>{items.length}</span>
+        {total != null
+          ? <SessionProgress current={items.length} total={total}/>
+          : <span style={{
+              color: "var(--ink-faint)",
+              fontWeight: 600,
+              textTransform: "none",
+              letterSpacing: 0,
+            }}>{items.length}</span>}
       </div>
       <div
         style={{
@@ -838,7 +845,7 @@ function FlyingChip({ word }) {
 // ──────────────────────────────────────────────────────────────
 // Pantalla fin de sesión — trofeo + repaso + acciones
 // ──────────────────────────────────────────────────────────────
-function SessionComplete({ completed, onPlayAgain, onBack }) {
+function WordBuilderSessionComplete({ completed, onPlayAgain, onBack }) {
   const [confettiOn, setConfettiOn] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setConfettiOn(false), 2200);
@@ -903,11 +910,9 @@ function SessionComplete({ completed, onPlayAgain, onBack }) {
         }}>Repaso</div>
         <div style={{
           display: "flex",
-          flexWrap: "wrap",
+          flexDirection: "column",
           gap: "var(--space-3)",
-          // Lista lineal alineada a la izquierda — lee como inventario,
-          // más fácil de escanear que centrada.
-          justifyContent: "flex-start",
+          alignItems: "flex-start",
         }}>
           {completed.map((it, i) => (
             <CompletedChip key={`${it.word}-${i}`} item={it} showAttempts={true}/>
@@ -1243,6 +1248,6 @@ Object.assign(window, {
   CompletedChip,
   AttemptsBadge,
   FlyingChip,
-  SessionComplete,
+  WordBuilderSessionComplete,
   DebugWordPicker,
 });

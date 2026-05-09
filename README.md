@@ -76,7 +76,7 @@ components/
   PlayMenu.jsx        ← submenú de juegos
   WordBuilder.jsx     ← mecánica core (forma palabras con sílabas, sesión de 10)
   Settings.jsx        ← pantalla Ajustes (audio + tamaño + aprendizaje)
-  shared.jsx          ← Mascot, MascotHint, speak() + warm-up TTS, helpers comunes
+  shared.jsx          ← Helper, HelperHint, speak() + warm-up TTS, helpers comunes
 styles/
   base.css            ← tokens de diseño (colores, escalas, paletas)
 data/
@@ -147,7 +147,7 @@ Ideal para diseñar; **no es producción**. Carga inicial lenta porque Babel com
 - Funciona offline una vez cargada (caché del navegador)
 - Opción alternativa de deployment en Synology NAS (Docker + Nginx Alpine) si se necesita
 - Animaciones de feedback cortas para mantener atención
-- Paleta de colores vivos y mascota guía
+- Paleta de colores vivos y ayudante guía
 - Diseño visual coherente entre todas las mecánicas
 
 ### No funcionales — Could (futuras iteraciones)

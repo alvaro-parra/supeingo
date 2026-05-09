@@ -1,5 +1,5 @@
 // Componentes compartidos de Supeingo
-// Mascota, indicadores de audio, confeti, estrellas, etc.
+// Ayudante, indicadores de audio, confeti, estrellas, etc.
 
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
@@ -270,10 +270,10 @@ function WordImage({ entry, size = 32, scale = true, style = {} }) {
 }
 
 // ------------------------------------------------------------
-// Mascota — un niño/a con gorra de béisbol. Aspecto neutro y amigable.
+// Ayudante — un niño/a con gorra de béisbol. Aspecto neutro y amigable.
 // Formas geométricas simples (placeholder; futuro: ilustración propia).
 // ------------------------------------------------------------
-function Mascot({ size = 96, mood = "happy", style = {} }) {
+function Helper({ size = 96, mood = "happy", style = {} }) {
   const eye = mood === "sad" ? (
     <>
       <path d="M 35 50 Q 40 46 45 50" stroke="#2A2A33" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
@@ -345,22 +345,22 @@ function Mascot({ size = 96, mood = "happy", style = {} }) {
 // Burbujita del niño dando una pista
 // "compact" → bocadillo a la derecha del personaje, ideal en headers
 // ------------------------------------------------------------
-function MascotHint({ children, mood = "happy", size = 64, position = "inline" }) {
+function HelperHint({ children, mood = "happy", size = 64, position = "inline" }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: "var(--space-3)",
       padding: position === "inline" ? "var(--space-2) var(--space-4)" : 0,
     }}>
-      <Mascot size={size} mood={mood}/>
+      <Helper size={size} mood={mood}/>
       <div style={{
         background: "var(--surface)",
         border: "3px solid var(--ink)",
         borderRadius: "var(--r-md)",
-        padding: "10px 14px",
+        padding: "12px 16px",
         boxShadow: "0 3px 0 var(--ink)",
         fontWeight: 600,
-        fontSize: "calc(14px * var(--scale))",
-        lineHeight: 1.3,
+        fontSize: "calc(17px * var(--scale))",
+        lineHeight: 1.35,
         position: "relative",
         flex: 1,
       }}>
@@ -420,7 +420,7 @@ function HelpButton({ hint }) {
             maxWidth: 360, width: "100%",
             animation: "pop 200ms ease-out",
           }}>
-            <MascotHint size={72} mood="happy">{hint}</MascotHint>
+            <HelperHint size={72} mood="happy">{hint}</HelperHint>
           </div>
         </div>
       )}
@@ -856,5 +856,5 @@ function TTSDebugPanel({ enabled }) {
 
 // Exportar
 Object.assign(window, {
-  speak, whenTTSReady, Mascot, MascotHint, HelpButton, SpeakButton, Star, Confetti, BigButton, ScreenHeader, TTSDebugPanel, WordImage,
+  speak, whenTTSReady, Helper, HelperHint, HelpButton, SpeakButton, Star, Confetti, BigButton, ScreenHeader, TTSDebugPanel, WordImage,
 });

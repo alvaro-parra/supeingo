@@ -1,4 +1,4 @@
-// "Encuentra el dibujo" — inverso de Forma palabras.
+// "Busca el dibujo" — inverso de Forma palabras.
 // El niño ve la palabra silabeada (con · separadores) y la escucha;
 // elige el dibujo correcto entre 6 opciones (cuadrícula 3×2).
 // Sin decoys curados: las opciones erróneas son palabras al azar del
@@ -167,7 +167,7 @@ function FindPicture({ onBack, debug = false }) {
   };
 
   if (sessionDone) {
-    return <SessionComplete
+    return <FindPictureSessionComplete
       completed={completed}
       onPlayAgain={restartSession}
       onBack={onBack}
@@ -178,16 +178,22 @@ function FindPicture({ onBack, debug = false }) {
     <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-6)" }}>
       <div className="bg-decor"/>
 
-      <ScreenHeader
-        title="Encuentra el dibujo"
-        onBack={onBack}
-        right={<SessionProgress current={idx} total={session.length}/>}
-      />
+      <ScreenHeader title="Busca el dibujo" onBack={onBack}/>
 
-      {/* Card central: palabra silabeada + altavoz. Pulsable entera. */}
-      <button
-        type="button"
+      {/* Card central: palabra silabeada + altavoz. Pulsable entera.
+          Usamos <div role="button"> en lugar de <button> porque dentro
+          va un SpeakButton (otro <button>) y HTML no permite anidar
+          buttons. Mantenemos accesibilidad con tabIndex + onKeyDown. */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => speakRef.current && speakRef.current()}
+        onKeyDown={e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            speakRef.current && speakRef.current();
+          }
+        }}
         aria-label={`Escuchar ${target.word}`}
         style={{
           margin: "var(--space-3) var(--space-4) var(--space-3)",
@@ -204,6 +210,7 @@ function FindPicture({ onBack, debug = false }) {
           position: "relative",
           zIndex: 2,
           width: "calc(100% - var(--space-4) * 2)",
+          boxSizing: "border-box",
           cursor: "pointer",
           transition: "transform 120ms ease, box-shadow 120ms ease",
         }}
@@ -240,7 +247,7 @@ function FindPicture({ onBack, debug = false }) {
           ))}
         </span>
         <SpeakButton text={target.word} size={40} triggerRef={speakRef}/>
-      </button>
+      </div>
 
       {/* Cuadrícula 3×2 de dibujos — envuelta en el mismo recuadro
           discontinuo de fondo suave que el banco de sílabas de
@@ -287,7 +294,10 @@ function FindPicture({ onBack, debug = false }) {
                 background: bg,
                 border: `3px solid ${borderColor}`,
                 borderRadius: "var(--r-md)",
-                boxShadow: status === "idle" ? "0 4px 0 var(--ink)" : "0 2px 0 var(--ink)",
+                // Solo la carta INVOLUCRADA en el feedback (la pulsada o la
+                // correcta resaltada) se hunde; las demás conservan su shadow
+                // normal aunque el status global no sea "idle".
+                boxShadow: (isPicked || isCorrect) ? "0 2px 0 var(--ink)" : "0 4px 0 var(--ink)",
                 display: "grid",
                 placeItems: "center",
                 cursor: status === "idle" ? "pointer" : "default",
@@ -341,7 +351,7 @@ function FindPicture({ onBack, debug = false }) {
       </div>
 
       <Confetti active={confettiOn}/>
-      {completed.length > 0 && <CompletedList items={completed}/>}
+      {completed.length > 0 && <CompletedList items={completed} total={session.length}/>}
       {flyingWord && <FlyingChip word={flyingWord}/>}
 
       {/* Selector de palabra (debug) — solo si está activo el modo
@@ -361,6 +371,88 @@ function FindPicture({ onBack, debug = false }) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// Pantalla fin de sesión de "Busca el dibujo" — igual que la de
+// WordBuilder pero sin el subtítulo "X palabras a la primera"; el
+// check verde junto a cada palabra se muestra siempre como refuerzo
+// positivo (forzamos attempts:1 al construir el chip), independiente
+// de cuántos intentos costó cada acierto.
+function FindPictureSessionComplete({ completed, onPlayAgain, onBack }) {
+  const [confettiOn, setConfettiOn] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setConfettiOn(false), 2200);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-6)" }}>
+      <div className="bg-decor"/>
+      <Confetti active={confettiOn}/>
+
+      <ScreenHeader title="¡Sesión completa!" onBack={onBack}/>
+
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "var(--space-5) var(--space-5) var(--space-4)",
+        position: "relative", zIndex: 2,
+      }}>
+        <Trophy size={180}/>
+        <div style={{
+          marginTop: "var(--space-4)",
+          fontSize: "calc(28px * var(--scale))",
+          fontWeight: 700,
+          fontFamily: "Fredoka, sans-serif",
+          textAlign: "center",
+        }}>¡Conseguiste {completed.length} palabras!</div>
+      </div>
+
+      <div style={{
+        margin: "var(--space-4) var(--space-5) 0",
+        padding: "var(--space-4)",
+        background: "var(--surface)",
+        border: "3px solid var(--ink)",
+        borderRadius: "var(--r-lg)",
+        boxShadow: "var(--shadow-md)",
+        position: "relative", zIndex: 2,
+      }}>
+        <div style={{
+          color: "var(--ink-soft)",
+          fontSize: "calc(12px * var(--scale))",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginBottom: "var(--space-3)",
+        }}>Repaso</div>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-3)",
+          alignItems: "flex-start",
+        }}>
+          {completed.map((it, i) => (
+            <CompletedChip
+              key={`${it.word}-${i}`}
+              item={{ ...it, attempts: 1 }}
+              showAttempts={true}/>
+          ))}
+        </div>
+      </div>
+
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        margin: "var(--space-5) var(--space-4) 0",
+        position: "relative", zIndex: 2,
+      }}>
+        <ActionButton variant="primary" icon="reload" onClick={onPlayAgain}>
+          Jugar de nuevo
+        </ActionButton>
+      </div>
     </div>
   );
 }

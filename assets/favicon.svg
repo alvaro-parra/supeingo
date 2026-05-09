@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <!-- Mismo motivo que la card "Aprender" del Home, pero con hex
+       fijos: las CSS vars de la app no se aplican a un favicon. -->
+  <text x="14" y="34"
+        font-family="Fredoka, Andika, system-ui, sans-serif"
+        font-size="30" font-weight="700" fill="#5A6F8C">A</text>
+  <text x="34" y="48"
+        font-family="Fredoka, Andika, system-ui, sans-serif"
+        font-size="26" font-weight="700" fill="#E76F51">a</text>
+</svg>

@@ -1,7 +1,7 @@
 // Pantalla Home — punto de entrada
 // Dos áreas grandes: Aprender y Jugar
 
-function Home({ onNav, mascotOn, onSettings }) {
+function Home({ onNav, helperOn, onSettings }) {
   return (
     <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-7)" }}>
       <div className="bg-decor"/>
@@ -56,7 +56,7 @@ function Home({ onNav, mascotOn, onSettings }) {
         </button>
       </header>
 
-      {mascotOn ? (
+      {helperOn ? (
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -65,7 +65,7 @@ function Home({ onNav, mascotOn, onSettings }) {
           padding: "var(--space-4) var(--space-5) var(--space-5)",
           position: "relative", zIndex: 2,
         }}>
-          <Mascot size={96} mood="happy"/>
+          <Helper size={96} mood="happy"/>
           <SpeechBubble>¿Qué quieres hacer hoy?</SpeechBubble>
         </div>
       ) : (
