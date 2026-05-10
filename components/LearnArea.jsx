@@ -441,11 +441,14 @@ function SyllablesScreen({ onBack }) {
             activeSyllable={active?.family === fam.consonant ? active.syllable : null}
             onPick={(s) => {
               setActive({ family: fam.consonant, syllable: s.syllable });
-              // "Ma, de mamá" — refuerza la asociación sílaba↔ejemplo,
-              // mismo patrón que las letras (A → "a, de abeja"). Si una
-              // sílaba aún no tiene `example`, sólo suena la sílaba.
+              // "Ma, mano" — refuerza la asociación sílaba↔ejemplo
+              // sin el "de" intermedio: en sílabas el conector suena
+              // forzado porque la sílaba YA es parte de la palabra.
+              // (Las letras sí usan "de": A → "a, de abeja", porque
+              // ahí el nombre de la letra es una entidad aparte.)
+              // Si una sílaba aún no tiene `example`, sólo suena la sílaba.
               const sound = s.spell || s.syllable;
-              speak(s.example ? `${sound}, de ${s.example}` : sound, { kind: "syllable" });
+              speak(s.example ? `${sound}, ${s.example}` : sound, { kind: "syllable" });
             }}/>
         ))}
       </div>
@@ -479,7 +482,7 @@ function SyllableExamplePanel({ syllable, example, spell, onClose }) {
   const tail = startsWithSyl ? example.slice(syllable.length) : example;
 
   const sound = spell || syllable;
-  const speakText = `${sound}, de ${example}`;
+  const speakText = `${sound}, ${example}`;
 
   return (
     <div style={{

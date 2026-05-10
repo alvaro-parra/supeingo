@@ -158,7 +158,12 @@ function _flushQueue() {
     u.lang = "es-ES";
     const v = _resolveVoice();
     if (v) u.voice = v;
-    u.rate = opts.rate ?? 0.95;
+    // Velocidad por kind: en la zona de "Aprender" (letras y sílabas)
+    // hablamos más despacio (0.85) para que el niño pueda asociar
+    // sonido↔grafía sin presión. El resto (palabras, feedback) sigue
+    // a 0.95, casi natural. `opts.rate` explícito siempre gana.
+    const isAprender = opts.kind === "letter" || opts.kind === "syllable";
+    u.rate = opts.rate ?? (isAprender ? 0.85 : 0.95);
     u.pitch = opts.pitch ?? 1.0;
     // El volumen lo gobierna el sistema operativo — siempre 1.0 a nivel
     // de la utterance. (Antes había un slider en Ajustes; se quitó.)
