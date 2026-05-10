@@ -42,11 +42,11 @@
     { upper: "Q",  lower: "q",  word: "QUESO"     },
     { upper: "R",  lower: "r",  word: "RANA"      },
     { upper: "S",  lower: "s",  word: "SOL"       },
-    { upper: "T",  lower: "t",  word: "TÉ"        },
+    { upper: "T",  lower: "t",  word: "TOMATE"    },
     { upper: "U",  lower: "u",  word: "UVA"       },
     { upper: "V",  lower: "v",  word: "VACA"      },
     { upper: "W",  lower: "w",  word: "WIFI"      },
-    { upper: "X",  lower: "x",  word: "XILÓFONO" },
+    { upper: "X",  lower: "x",  word: "TAXI"      },
     { upper: "Y",  lower: "y",  word: "YOYÓ",      spell: "i griega" },
     { upper: "Z",  lower: "z",  word: "ZORRO"     },
   ];

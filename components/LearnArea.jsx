@@ -25,7 +25,7 @@ function LearnMenu({ onBack, onPick }) {
     // que la card de Aprender en Home) — facilita la lectura cuando hay
     // varias seguidas.
     { id: "letters",   name: "Letras",      subtitle: "El abecedario", color: "secondary", emoji: "🔤", ready: true },
-    { id: "syllables", name: "Sílabas básicas", subtitle: "BA · BE · BI…", color: "secondary", emoji: "🧱", ready: false },
+    { id: "syllables", name: "Sílabas", subtitle: "Aprende a leer sílabas", color: "secondary", illustration: <SyllablesIllustration/>, ready: true },
     { id: "vocab",     name: "Vocabulario", subtitle: "Animales, comida…", color: "secondary", emoji: "📚", ready: false },
   ];
 
@@ -64,7 +64,44 @@ function LearnMenu({ onBack, onPick }) {
   );
 }
 
-function SectionCard({ name, subtitle, color, emoji, ready, onClick }) {
+// Ilustración del card "Sílabas" — 2×2 con tres sílabas reales
+// (MA · ME · MI) y un cuarto bloque con tres puntos como icono de
+// "continúa" para señalizar "hay más" sin amontonar las 5. El bloque
+// del ellipsis lleva relleno neutro (bg-2) y los puntos van dibujados
+// (circles) para que lea como elemento distinto, no como otra sílaba.
+function SyllablesIllustration() {
+  const blocks = [
+    { x: 3,  y: 3,  syl: "MA", color: "var(--accent)" },
+    { x: 33, y: 3,  syl: "ME", color: "var(--warn)"   },
+    { x: 3,  y: 33, syl: "MI", color: "var(--warn)"   },
+    { x: 33, y: 33, syl: null, color: "var(--bg-2)"   },
+  ];
+  return (
+    <svg viewBox="0 0 60 60" width="64" height="64">
+      {blocks.map((b, i) => (
+        <g key={i}>
+          <rect x={b.x} y={b.y} width={24} height={24} rx={5}
+            fill={b.color} stroke="var(--ink)" strokeWidth={2}/>
+          {b.syl ? (
+            <text x={b.x + 12} y={b.y + 17} textAnchor="middle"
+              style={{ fontSize: 13, fontWeight: 700, fill: "var(--ink)",
+                       fontFamily: "Andika, Fredoka, sans-serif" }}>
+              {b.syl}
+            </text>
+          ) : (
+            <g fill="var(--ink)">
+              <circle cx={b.x + 7}  cy={b.y + 12} r={2}/>
+              <circle cx={b.x + 12} cy={b.y + 12} r={2}/>
+              <circle cx={b.x + 17} cy={b.y + 12} r={2}/>
+            </g>
+          )}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function SectionCard({ name, subtitle, color, emoji, illustration, ready, onClick }) {
   const bg = color === "accent" ? "var(--accent)"
     : color === "secondary" ? "var(--secondary)"
     : color === "warn" ? "var(--warn)"
@@ -129,8 +166,8 @@ function SectionCard({ name, subtitle, color, emoji, ready, onClick }) {
         borderRadius: "var(--r-lg)",
         display: "grid", placeItems: "center",
         flexShrink: 0,
-        fontSize: 44,
-      }}>{emoji}</div>
+        fontSize: illustration ? undefined : 44,
+      }}>{illustration || emoji}</div>
       {!ready && (
         <span style={{
           position: "absolute", top: 12, right: 12,
@@ -375,6 +412,13 @@ function SyllablesScreen({ onBack }) {
   const families = window.SUPEINGO_CONTENT.syllableFamilies;
   const [active, setActive] = useState(null); // {family, syllable}
 
+  // Datos completos de la sílaba activa — incluye `example`/`spell`
+  // si los tiene. Nos sirve para decidir si abrimos el panel inferior.
+  const activeData = active
+    ? families.find(f => f.consonant === active.family)
+        ?.syllables.find(s => s.syllable === active.syllable)
+    : null;
+
   return (
     <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-7)" }}>
       <div className="bg-decor"/>
@@ -397,9 +441,100 @@ function SyllablesScreen({ onBack }) {
             activeSyllable={active?.family === fam.consonant ? active.syllable : null}
             onPick={(s) => {
               setActive({ family: fam.consonant, syllable: s.syllable });
-              speak(s.spell || s.syllable, { kind: "syllable" });
+              // "Ma, de mamá" — refuerza la asociación sílaba↔ejemplo,
+              // mismo patrón que las letras (A → "a, de abeja"). Si una
+              // sílaba aún no tiene `example`, sólo suena la sílaba.
+              const sound = s.spell || s.syllable;
+              speak(s.example ? `${sound}, de ${s.example}` : sound, { kind: "syllable" });
             }}/>
         ))}
+      </div>
+
+      {activeData?.example && (
+        <SyllableExamplePanel
+          syllable={activeData.syllable}
+          example={activeData.example}
+          spell={activeData.spell}
+          onClose={() => setActive(null)}/>
+      )}
+    </div>
+  );
+}
+
+// Panel inferior fijo que aparece al pulsar una sílaba con palabra-ejemplo.
+// Clon estructural de `ExamplePanel` (Letras): a la izquierda la sílaba
+// grande; a la derecha el visual del ejemplo (emoji/SVG si la palabra
+// existe en el diccionario), botón de altavoz, y la palabra-ejemplo con
+// la sílaba inicial resaltada en color de acento.
+function SyllableExamplePanel({ syllable, example, spell, onClose }) {
+  const dict = window.SUPEINGO_CONTENT.dictionaryByWord || {};
+  const dictEntry = dict[example];
+
+  // La palabra-ejemplo se diseña para que su PRIMERA sílaba sea la
+  // que estamos enseñando. Comparamos sin tildes (MÚSICA + MU → "MÚ"
+  // empareja) por si el ejemplo lleva acento ortográfico.
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+  const startsWithSyl = norm(example.slice(0, syllable.length)) === norm(syllable);
+  const head = startsWithSyl ? example.slice(0, syllable.length) : "";
+  const tail = startsWithSyl ? example.slice(syllable.length) : example;
+
+  const sound = spell || syllable;
+  const speakText = `${sound}, de ${example}`;
+
+  return (
+    <div style={{
+      position: "fixed", left: 0, right: 0, bottom: 0,
+      maxWidth: 480, margin: "0 auto",
+      background: "var(--surface)",
+      border: "3px solid var(--ink)",
+      borderBottom: "none",
+      borderTopLeftRadius: "var(--r-xl)",
+      borderTopRightRadius: "var(--r-xl)",
+      boxShadow: "0 -8px 24px -8px rgba(42,42,51,0.2)",
+      padding: "var(--space-5)",
+      zIndex: 30,
+      animation: "pop 220ms ease-out",
+    }}>
+      <button onClick={onClose} aria-label="Cerrar"
+        style={{
+          position: "absolute", top: 12, right: 12,
+          width: 36, height: 36,
+          borderRadius: "50%",
+          border: "2px solid var(--ink)",
+          background: "var(--bg)",
+          fontWeight: 700,
+        }}>×</button>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+        <div style={{
+          width: 96, height: 96,
+          background: "var(--bg-2)",
+          border: "3px solid var(--ink)",
+          borderRadius: "var(--r-md)",
+          display: "grid", placeItems: "center",
+          fontSize: "calc(36px * var(--scale))",
+          fontWeight: 700,
+          fontFamily: "Andika, Fredoka, sans-serif",
+          letterSpacing: "0.04em",
+          flexShrink: 0,
+        }}>{syllable}</div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            {dictEntry && <WordImage entry={dictEntry} size={40}/>}
+            <SpeakButton text={speakText} label="Escuchar" size={44} kind="syllable"/>
+          </div>
+          <div style={{
+            marginTop: "var(--space-2)",
+            fontSize: "calc(22px * var(--scale))",
+            fontWeight: 700,
+            fontFamily: "Andika, Fredoka, sans-serif",
+            letterSpacing: "0.05em",
+          }}>
+            {head && <span style={{ color: "var(--accent-strong)", fontWeight: 700 }}>{head}</span>}
+            <span style={{ color: "var(--ink)", fontWeight: 500 }}>{tail}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

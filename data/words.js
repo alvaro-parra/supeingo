@@ -45,6 +45,7 @@
     { word: "BOCA",  decoys: ["VO", "KA"] },
     { word: "HOJA",  decoys: ["O", "GA"] },
     { word: "QUESO", decoys: ["ZO", "KE"] },
+    { word: "JAMÓN", decoys: ["MON"] },
     { word: "DEDO" },
     { word: "NUBE",  decoys: ["VE"] },
     { word: "LLAVE", decoys: ["YA", "BE"] },
@@ -92,6 +93,7 @@
       syllables: d.syllables,
       emoji: d.emoji,
       svg: d.svg,           // opcional — el renderer lo prefiere si existe
+      image: d.image,       // opcional — más prioritario que svg/emoji
       decoys: e.decoys || [],
     };
   }).filter(Boolean);

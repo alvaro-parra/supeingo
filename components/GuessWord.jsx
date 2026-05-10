@@ -91,7 +91,7 @@ function GuessWord({ onBack, debug = false }) {
 
   const [idx, setIdx] = useState(0);
   const sessionDone = idx >= session.length;
-  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null, category: "" };
+  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null, categories: [] };
 
   // Banco de sílabas para la palabra actual.
   const initialBank = useMemo(() => _gwBuildBank(target, allEntries),
@@ -267,6 +267,7 @@ function GuessWord({ onBack, debug = false }) {
         syllables: target.syllables,
         emoji: target.emoji,
         svg: target.svg,
+        image: target.image,
         // Este juego siempre termina en éxito (los distractores se purgan
         // hasta dejar solo las correctas), así que cada palabra acertada
         // saca el ✓ del CompletedChip — sin métrica de pistas/intentos.
@@ -730,8 +731,15 @@ function HintList({ target, hintsUsed, availableHints, comparators, onRequestHin
 }
 
 function CategoryHint({ entry }) {
-  const icon  = (window.SUPEINGO_CONTENT.guessCategoryIcons  || {})[entry.category] || "❓";
-  const label = (window.SUPEINGO_CONTENT.guessCategoryLabels || {})[entry.category] || `Categoría: ${entry.category}`;
+  // Si la palabra tiene varias categorías, usamos la primera que tenga
+  // icono/etiqueta declarados — así controlamos qué pista se muestra
+  // simplemente reordenando el array `categories` en el diccionario.
+  const icons  = window.SUPEINGO_CONTENT.guessCategoryIcons  || {};
+  const labels = window.SUPEINGO_CONTENT.guessCategoryLabels || {};
+  const cat = (entry.categories || []).find(c => icons[c] || labels[c])
+    || (entry.categories || [])[0];
+  const icon  = icons[cat]  || "❓";
+  const label = labels[cat] || (cat ? `Categoría: ${cat}` : "Categoría: ?");
   return (
     <HintCard>
       <span aria-hidden style={{ fontSize: "calc(28px * var(--scale))", lineHeight: 1 }}>{icon}</span>

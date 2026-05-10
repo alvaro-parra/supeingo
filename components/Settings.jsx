@@ -222,7 +222,7 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
       <Section title="Aprendizaje" icon={<TeachingIcon/>}>
         <Toggle
           label="Incluir CH y LL"
-          hint="Enseñanza tradicional. Aparecen en el abecedario y, en el futuro, en sílabas y palabras."
+          hint="Aparecen como letras propias en el abecedario."
           checked={!!settings.includeDigraphs}
           onChange={(v) => onChange({ includeDigraphs: v })}
         />

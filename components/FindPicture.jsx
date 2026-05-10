@@ -39,15 +39,18 @@ function FindPicture({ onBack, debug = false }) {
   const allEntries = useMemo(() => {
     const cats = new Set(FP_CATEGORIES);
     return window.SUPEINGO_CONTENT.dictionary.filter(
-      e => cats.has(e.category) && (e.svg || e.emoji)
+      e => (e.categories || []).some(c => cats.has(c)) && (e.svg || e.emoji)
     );
   }, []);
   // Índice por categoría dentro del subconjunto habilitado — se usa
   // para elegir las 5 opciones erróneas del mismo grupo que el target.
+  // Una palabra con varias categorías aparece en cada uno de sus bins.
   const entriesByCategory = useMemo(() => {
     const idx = {};
     for (const e of allEntries) {
-      (idx[e.category] = idx[e.category] || []).push(e);
+      for (const c of (e.categories || [])) {
+        (idx[c] = idx[c] || []).push(e);
+      }
     }
     return idx;
   }, [allEntries]);
@@ -71,7 +74,7 @@ function FindPicture({ onBack, debug = false }) {
 
   const [idx, setIdx] = useState(0);
   const sessionDone = idx >= session.length;
-  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null };
+  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null, categories: [] };
   // Auto-shrink discreto del rótulo según longitud (letras + separadores ·)
   // para que palabras como ZANAHORIA o HELICÓPTERO no toquen los bordes.
   const _vlen = target.word.length + Math.max(0, target.syllables.length - 1);
@@ -91,12 +94,23 @@ function FindPicture({ onBack, debug = false }) {
   // categorías habilitadas, pero protegemos por si acaso).
   const choices = useMemo(() => {
     if (!target.word) return [];
-    const sameCat = (entriesByCategory[target.category] || [])
-      .filter(e => e.word !== target.word);
-    let wrong = _fpShuffle(sameCat).slice(0, FP_GRID_SIZE - 1);
+    // Una entrada puede tener varias categorías; consideramos "misma
+    // categoría" cualquiera que comparta al menos una con el target.
+    // Como `entriesByCategory` ya tiene a la palabra en cada uno de
+    // sus bins, juntamos todos los bins del target y deduplicamos.
+    const targetCats = target.categories || [];
+    const sameCatSet = new Set();
+    for (const c of targetCats) {
+      for (const e of (entriesByCategory[c] || [])) {
+        if (e.word !== target.word) sameCatSet.add(e);
+      }
+    }
+    let wrong = _fpShuffle([...sameCatSet]).slice(0, FP_GRID_SIZE - 1);
     if (wrong.length < FP_GRID_SIZE - 1) {
-      const fillers = allEntries.filter(
-        e => e.word !== target.word && !wrong.includes(e) && e.category !== target.category
+      const fillers = allEntries.filter(e =>
+        e.word !== target.word
+        && !wrong.includes(e)
+        && !(e.categories || []).some(c => targetCats.includes(c))
       );
       wrong = wrong.concat(_fpShuffle(fillers).slice(0, FP_GRID_SIZE - 1 - wrong.length));
     }
@@ -130,6 +144,7 @@ function FindPicture({ onBack, debug = false }) {
         syllables: target.syllables,
         emoji: target.emoji,
         svg: target.svg,
+        image: target.image,
         attempts,
       };
 

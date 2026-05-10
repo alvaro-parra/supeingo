@@ -227,10 +227,18 @@ function speak(text, opts = {}) {
 // ------------------------------------------------------------
 function WordImage({ entry, size = 32, scale = true, style = {} }) {
   const px = scale ? `calc(${size}px * var(--scale))` : `${size}px`;
-  if (entry && entry.svg) {
+  // `image` (genérico) lleva ruta+extensión relativa a assets/ y soporta
+  // cualquier formato (svg, png, webp…). `svg` es la convención antigua
+  // y se mantiene por compatibilidad: equivale a `image: "svg/X.svg"`.
+  const imgSrc = entry && entry.image
+    ? `assets/${entry.image}`
+    : entry && entry.svg
+      ? `assets/svg/${entry.svg}`
+      : null;
+  if (imgSrc) {
     return (
       <img
-        src={`assets/svg/${entry.svg}`}
+        src={imgSrc}
         alt=""
         aria-hidden
         draggable={false}

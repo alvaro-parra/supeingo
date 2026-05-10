@@ -310,10 +310,10 @@
     for (const e of DATA) {
       const d = dict[e.word];
       if (!d) { missing.push(e.word); continue; }
-      if (d.emoji)     e.emoji     = d.emoji;
-      if (d.svg)       e.svg       = d.svg;
-      if (d.syllables) e.syllables = d.syllables;
-      if (d.category)  e.category  = d.category;
+      if (d.emoji)      e.emoji      = d.emoji;
+      if (d.svg)        e.svg        = d.svg;
+      if (d.syllables)  e.syllables  = d.syllables;
+      if (d.categories) e.categories = d.categories;
     }
     if (missing.length) {
       console.error(`[supeingo:guessWords] palabras no encontradas en el diccionario: ${missing.join(", ")}`);

@@ -217,6 +217,7 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
         syllables: target.syllables,
         emoji: target.emoji,
         svg: target.svg,
+        image: target.image,
         attempts,
       };
 
