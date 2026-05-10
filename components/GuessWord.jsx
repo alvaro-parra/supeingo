@@ -113,12 +113,14 @@ function GuessWord({ onBack, debug = false }) {
     // eslint-disable-next-line
   }, [target.word, sessionSeed]);
 
-  // Cuántas pistas reales se pueden mostrar para esta palabra. Algunas
-  // se saltan según los datos disponibles (sin color → -1, sin
-  // sizeSmaller → -1, sin sizeLarger → -1). Las pistas 1, 5 y 6
-  // (categoría, primera sílaba, silueta) siempre aplican. Es lo que
-  // usamos para decidir cuándo empezar a purgar distractoras: solo
-  // tras agotar TODAS las pistas que esta palabra puede dar.
+  // Cuántas tarjetas de pista van a aparecer en total para esta palabra.
+  // Solo se usa para el contador visual "X/Y" del header de pistas.
+  // OJO: NO sirve como cota de "¿quedan pistas?" — `hintsUsed` es un
+  // número de nivel (1..6) que puede saltar huecos al recorrer
+  // `applyHint`, mientras que esto es un conteo (3..6). Mezclarlos
+  // hacía que se diera por agotada la cadena antes de llegar a la
+  // silueta cuando faltaban comparadores. La cota correcta es
+  // `GW_MAX_HINTS` (los niveles 1, 5 y 6 siempre aplican).
   const availableHints = useMemo(() => {
     let count = 3; // categoría + primera sílaba + silueta
     if (target.colors && target.colors.length > 0) count++;
@@ -294,7 +296,7 @@ function GuessWord({ onBack, debug = false }) {
       // setPlaced de limpieza y la posible auto-colocación de la pista 5.
       setTimeout(() => {
         let appliedLevel = hintsUsed;
-        if (hintsUsed < availableHints) {
+        if (hintsUsed < GW_MAX_HINTS) {
           appliedLevel = applyHint(hintsUsed + 1);
           setHintsUsed(appliedLevel);
         } else {
@@ -334,7 +336,7 @@ function GuessWord({ onBack, debug = false }) {
   // refleja la ayuda total recibida (vía pistas o vía fallos).
   const handleHint = () => {
     if (status !== "idle") return;
-    if (hintsUsed >= availableHints) return;
+    if (hintsUsed >= GW_MAX_HINTS) return;
     const appliedLevel = applyHint(hintsUsed + 1);
     setHintsUsed(appliedLevel);
     // Si la pista aplicada es la 5 (primera sílaba), ésta debe quedar
@@ -469,7 +471,7 @@ function GuessWord({ onBack, debug = false }) {
         availableHints={availableHints}
         comparators={sizeComparators}
         onRequestHint={handleHint}
-        canRequestHint={hintsUsed < availableHints && status === "idle"}/>
+        canRequestHint={hintsUsed < GW_MAX_HINTS && status === "idle"}/>
 
       {/* Overlay celebratorio reusado de Memory: imagen + palabra
           silabeada por encima de todo. Se muestra durante ~1.2s tras
@@ -638,7 +640,10 @@ function HintList({ target, hintsUsed, availableHints, comparators, onRequestHin
   // Invertimos para que la pista más reciente quede arriba — así no
   // hay que hacer scroll cuando se desbloquea una nueva.
   cards.reverse();
-  const exhausted = hintsUsed >= availableHints;
+  // Conteo de tarjetas realmente visibles (≠ nivel actual: hintsUsed
+  // puede saltarse huecos cuando faltan comparadores).
+  const hintsShown = cards.length;
+  const exhausted = hintsUsed >= GW_MAX_HINTS;
   return (
     <div style={{
       margin: "var(--space-4) var(--space-4) 0",
@@ -664,12 +669,12 @@ function HintList({ target, hintsUsed, availableHints, comparators, onRequestHin
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.08em",
-        }}>Pistas {hintsUsed > 0 && (
+        }}>Pistas {hintsShown > 0 && (
           <span style={{
             color: "var(--ink-faint)",
             fontWeight: 600,
             marginLeft: 4,
-          }}>{hintsUsed}/{availableHints}</span>
+          }}>{hintsShown}/{availableHints}</span>
         )}</span>
         {/* Botón circular con la lupa 🔍 para pedir la siguiente pista.
             Sustituye al antiguo botón "Pista" de la barra de acciones. */}
