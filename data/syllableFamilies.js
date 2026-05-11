@@ -51,6 +51,16 @@
       { syllable: "MO", example: "MONO" },
       { syllable: "MU", example: "MÚSICA" },
     ] },
+    // JE/JI: algunas voces TTS no-es leen la J como /j/ inglés ("ye/yi").
+    // En español JE=GE y JI=GI son fonéticamente idénticos (/xe/ /xi/),
+    // así que deletreamos GE/GI para forzar el sonido correcto.
+    { consonant: "J", syllables: [
+      { syllable: "JA", example: "JAMÓN" },
+      { syllable: "JE", spell: "GE", example: "JERSEY" },
+      { syllable: "JI", spell: "GI", example: "JIRAFA" },
+      { syllable: "JO", example: "JOYA" },
+      { syllable: "JU", example: "JUGUETE" },
+    ] },
   ];
 
   window.SUPEINGO_VALIDATE(SCHEMA, DATA);

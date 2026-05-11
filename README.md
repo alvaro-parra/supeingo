@@ -84,6 +84,17 @@ data/
 tweaks-panel.jsx      ← panel de tweaks (toolbar in-page, oculto en producción)
 ```
 
+### Pipeline de imágenes (`assets/img/*.webp`)
+
+Para palabras sin emoji adecuado, generamos PNG 1024² con alpha (ChatGPT u otra fuente) y los procesamos así:
+
+```bash
+sips -Z 256 origen.png                          # redimensiona a 256² in-place
+cwebp -q 85 origen.png -o assets/img/foo.webp   # PNG → WebP (~10–20 KB)
+```
+
+Luego se referencia desde `data/dictionary.js` con `image: "img/foo.webp"`. `image` tiene prioridad sobre `svg` y `emoji`.
+
 ---
 
 ## 5. Banco de ideas — mecánicas y contenidos futuros

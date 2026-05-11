@@ -244,6 +244,7 @@
     { word: "MOCHILA",      syllables: ["MO","CHI","LA"],           emoji: "🎒", categories: ["ropa"] },
     { word: "BOLSO",        syllables: ["BOL","SO"],                emoji: "👜", categories: ["ropa"] },
     { word: "PARAGUAS",     syllables: ["PA","RA","GUAS"],          emoji: "☂\u{FE0F}", categories: ["ropa"] },
+    { word: "JERSEY",       syllables: ["JER","SEY"],               image: "img/jersey.webp", categories: ["ropa"] },
 
     // ── Música ───────────────────────────────────────────────
     { word: "GUITARRA",     syllables: ["GUI","TA","RRA"],          emoji: "🎸", categories: ["musica"] },
@@ -264,6 +265,7 @@
     { word: "PUZLE",        syllables: ["PUZ","LE"],                emoji: "🧩" },
     { word: "GLOBO",        syllables: ["GLO","BO"],                emoji: "🎈" },
     { word: "YOYÓ",         syllables: ["YO","YÓ"],                 emoji: "🪀" },
+    { word: "JUGUETE",      syllables: ["JU","GUE","TE"],           image: "img/juguete.webp" },
 
     // ── Otros / fantasía ─────────────────────────────────────
     { word: "DRAGÓN",       syllables: ["DRA","GÓN"],               emoji: "🐉", categories: ["fantasia"] },
@@ -277,6 +279,7 @@
     { word: "MAPA",         syllables: ["MA","PA"],                 emoji: "🗺\u{FE0F}", categories: ["fantasia"] },
     { word: "IMÁN",         syllables: ["I","MÁN"],                 emoji: "🧲", categories: ["fantasia"] },
     { word: "DIAMANTE",     syllables: ["DIA","MAN","TE"],          emoji: "💎", categories: ["fantasia"] },
+    { word: "JOYA",         syllables: ["JO","YA"],                 image: "img/joya.webp", categories: ["fantasia"] },
     { word: "WIFI",         syllables: ["WI","FI"],                 emoji: "📶", categories: ["fantasia"] },
   ];
 
