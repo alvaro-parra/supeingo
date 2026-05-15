@@ -79,7 +79,9 @@ function _gwBuildBank(target, allWords) {
 }
 
 function GuessWord({ onBack, debug = false }) {
-  const allEntries = window.SUPEINGO_CONTENT.guessWords || [];
+  // Filtramos targets cuya palabra tenga tag "miedo" en el diccionario
+  // cuando el ajuste "Ocultar palabras que dan miedo" está activo.
+  const allEntries = filterScary(window.SUPEINGO_CONTENT.guessWords || []);
 
   // Palabra forzada en modo depuración — si está, garantiza que aparezca
   // primera en la sesión al construirla.
@@ -102,10 +104,13 @@ function GuessWord({ onBack, debug = false }) {
   // De `sizeSmaller` (palabras más pequeñas que el target) escogemos
   // una; de `sizeLarger` otra. Si el array está vacío o ausente,
   // la pista correspondiente se salta.
+  // Filtramos antes con filterScary para no proponer p.ej. RATÓN o
+  // SERPIENTE como comparador cuando el ajuste kid-safe está activo.
   const sizeComparators = useMemo(() => {
-    const pickOne = (arr) => (arr && arr.length > 0)
-      ? arr[Math.floor(Math.random() * arr.length)]
-      : null;
+    const pickOne = (arr) => {
+      const safe = filterScary(arr);
+      return safe.length > 0 ? safe[Math.floor(Math.random() * safe.length)] : null;
+    };
     return {
       smaller: pickOne(target.sizeSmaller),
       larger:  pickOne(target.sizeLarger),

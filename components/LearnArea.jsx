@@ -2,7 +2,7 @@
 // y cada sección con su propia vista.
 
 function LearnArea({ onBack }) {
-  const [section, setSection] = useState(null); // null = menú | "letters" | "syllables"
+  const [section, setSection] = useState(null); // null = menú | "letters" | "syllables" | "vocab"
 
   if (section === null) {
     return <LearnMenu onBack={onBack} onPick={setSection}/>;
@@ -13,8 +13,21 @@ function LearnArea({ onBack }) {
   if (section === "syllables") {
     return <SyllablesScreen onBack={() => setSection(null)}/>;
   }
+  if (section === "vocab") {
+    return <VocabScreen onBack={() => setSection(null)}/>;
+  }
   return null;
 }
+
+// Mapeo de categorías del diccionario → etiqueta visible + emoji que
+// representa la categoría en el menú de Vocabulario. Las claves deben
+// coincidir con `categories` de data/dictionary.js. Si quitas o
+// renombras una categoría allí, actuálzala aquí también.
+const VOCAB_CATEGORY_INFO = {
+  animales:   { label: "Animales",          emoji: "🐱" },
+  vegetales:  { label: "Frutas y verduras", emoji: "🥕" },
+  transporte: { label: "Transporte",        emoji: "🚗" },
+};
 
 // ────────────────────────────────────────────────────────────
 // Submenú de Aprender
@@ -26,7 +39,7 @@ function LearnMenu({ onBack, onPick }) {
     // varias seguidas.
     { id: "letters",   name: "Letras",      subtitle: "El abecedario", color: "secondary", emoji: "🔤", ready: true },
     { id: "syllables", name: "Sílabas", subtitle: "Aprende a leer sílabas", color: "secondary", illustration: <SyllablesIllustration/>, ready: true },
-    { id: "vocab",     name: "Vocabulario", subtitle: "Animales, comida…", color: "secondary", emoji: "📚", ready: false },
+    { id: "vocab",     name: "Vocabulario", subtitle: "Animales, comida…", color: "secondary", emoji: "📚", ready: true },
   ];
 
   return (
@@ -599,6 +612,203 @@ function SyllableFamily({ family, activeSyllable, onPick }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// VOCABULARIO
+// Dos niveles: menú de categorías → lista de palabras de la categoría.
+// Pulsar una palabra reproduce su audio. La idea es "repasar", no
+// jugar: sin sesión ni puntuación.
+// ─────────────────────────────────────────────────────────────────
+function VocabScreen({ onBack }) {
+  const [category, setCategory] = useState(null);
+
+  // Iteramos en el orden definido en VOCAB_CATEGORY_INFO (no en el del
+  // diccionario) para tener control directo del orden de presentación.
+  // Sólo mostramos categorías con al menos 1 palabra (tras aplicar
+  // filterScary, que respeta el ajuste "Ocultar palabras que dan miedo").
+  const byCat = (window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionaryByCategory) || {};
+  const visible = Object.keys(VOCAB_CATEGORY_INFO).filter(
+    c => filterScary(byCat[c]).length > 0
+  );
+
+  if (category) {
+    return <VocabCategoryScreen category={category} onBack={() => setCategory(null)}/>;
+  }
+
+  return (
+    <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-7)" }}>
+      <div className="bg-decor"/>
+      <ScreenHeader title="Vocabulario" onBack={onBack}/>
+
+      <div style={{
+        padding: "0 var(--space-4)",
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "var(--space-3)",
+        position: "relative", zIndex: 2,
+      }}>
+        {visible.map(c => (
+          <CategoryCard key={c}
+            label={VOCAB_CATEGORY_INFO[c].label}
+            emoji={VOCAB_CATEGORY_INFO[c].emoji}
+            count={filterScary(byCat[c]).length}
+            onClick={() => setCategory(c)}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CategoryCard({ label, emoji, count, onClick }) {
+  return (
+    <button onClick={onClick}
+      style={{
+        background: "var(--secondary)",
+        color: "var(--ink)",
+        border: "3px solid var(--ink)",
+        borderRadius: "var(--r-lg)",
+        boxShadow: "0 5px 0 var(--ink)",
+        padding: "var(--space-4)",
+        minHeight: 130,
+        textAlign: "left",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "var(--space-2)",
+        transition: "transform 120ms ease, box-shadow 120ms ease",
+      }}
+      onPointerDown={e => { e.currentTarget.style.transform = "translateY(3px)"; e.currentTarget.style.boxShadow = "0 2px 0 var(--ink)"; }}
+      onPointerUp={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 5px 0 var(--ink)"; }}
+      onPointerLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 5px 0 var(--ink)"; }}
+      onPointerCancel={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 5px 0 var(--ink)"; }}
+    >
+      <div style={{
+        width: 56, height: 56,
+        background: "var(--surface)",
+        border: "3px solid var(--ink)",
+        borderRadius: "var(--r-md)",
+        display: "grid", placeItems: "center",
+        fontSize: 30,
+      }}>{emoji}</div>
+      <div>
+        <div style={{
+          fontSize: "calc(18px * var(--scale))",
+          fontWeight: 700,
+          lineHeight: 1.1,
+        }}>{label}</div>
+        <div style={{
+          marginTop: 2,
+          fontSize: "calc(12px * var(--scale))",
+          opacity: 0.7,
+          fontWeight: 500,
+        }}>{count} palabras</div>
+      </div>
+    </button>
+  );
+}
+
+// Lista de palabras dentro de una categoría. Pulsar una palabra la
+// pronuncia y la marca como "activa" (ligero feedback visual breve).
+function VocabCategoryScreen({ category, onBack }) {
+  const info = VOCAB_CATEGORY_INFO[category] || { label: category, emoji: "✨" };
+  const byCat = (window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionaryByCategory) || {};
+  const entries = filterScary(byCat[category]);
+  const [activeWord, setActiveWord] = useState(null);
+
+  const handlePick = (entry) => {
+    setActiveWord(entry.word);
+    speak(entry.word);
+    // Reseteamos el highlight tras un breve flash. No bloqueamos al usuario.
+    setTimeout(() => setActiveWord(curr => curr === entry.word ? null : curr), 700);
+  };
+
+  return (
+    <div style={{ position: "relative", minHeight: "100vh", paddingBottom: "var(--space-7)" }}>
+      <div className="bg-decor"/>
+      <ScreenHeader title={info.label} onBack={onBack}/>
+
+      <div style={{
+        padding: "0 var(--space-4)",
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "var(--space-3)",
+        position: "relative", zIndex: 2,
+      }}>
+        {entries.map(e => (
+          <VocabWordCard key={e.word}
+            entry={e}
+            active={activeWord === e.word}
+            onClick={() => handlePick(e)}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VocabWordCard({ entry, active, onClick }) {
+  return (
+    <button onClick={onClick}
+      aria-label={`Escuchar ${entry.word}`}
+      style={{
+        background: active ? "var(--bg-2)" : "var(--surface)",
+        border: "3px solid var(--ink)",
+        borderRadius: "var(--r-lg)",
+        boxShadow: active ? "0 1px 0 var(--ink)" : "0 4px 0 var(--ink)",
+        transform: active ? "translateY(3px)" : "none",
+        padding: "var(--space-3)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "var(--space-2)",
+        cursor: "pointer",
+        transition: "transform 120ms ease, box-shadow 120ms ease, background 200ms ease",
+      }}
+      onPointerDown={e => {
+        if (active) return;
+        e.currentTarget.style.transform = "translateY(3px)";
+        e.currentTarget.style.boxShadow = "0 1px 0 var(--ink)";
+      }}
+      onPointerUp={e => {
+        if (active) return;
+        e.currentTarget.style.transform = "";
+        e.currentTarget.style.boxShadow = "0 4px 0 var(--ink)";
+      }}
+      onPointerLeave={e => {
+        if (active) return;
+        e.currentTarget.style.transform = "";
+        e.currentTarget.style.boxShadow = "0 4px 0 var(--ink)";
+      }}
+      onPointerCancel={e => {
+        if (active) return;
+        e.currentTarget.style.transform = "";
+        e.currentTarget.style.boxShadow = "0 4px 0 var(--ink)";
+      }}
+    >
+      <WordImage entry={entry} size={64}/>
+      <div style={{
+        fontFamily: "Andika, Fredoka, sans-serif",
+        fontWeight: 700,
+        fontSize: "calc(18px * var(--scale))",
+        letterSpacing: "0.03em",
+        textAlign: "center",
+        lineHeight: 1.15,
+      }}>
+        {entry.syllables.map((s, i) => (
+          <React.Fragment key={i}>
+            <span>{s}</span>
+            {i < entry.syllables.length - 1 && (
+              <span aria-hidden style={{
+                color: "var(--ink-faint)", fontWeight: 500,
+                margin: "0 0.05em",
+              }}>·</span>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </button>
   );
 }
 

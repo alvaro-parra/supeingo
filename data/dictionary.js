@@ -46,8 +46,19 @@
       // que no encajan en ningún grupo). Cada nombre debe estar en el
       // catálogo CATEGORIES de abajo.
       categories: { type: "array", of: { type: "string" }, required: false },
+      // Etiquetas ortogonales a las categorías. "miedo" marca palabras
+      // que pueden asustar a peques (araña, serpiente, murciélago,…). El
+      // ajuste "Ocultar palabras que dan miedo" filtra estas entradas
+      // del pool de los juegos. Cada tag debe estar en el catálogo TAGS.
+      tags:      { type: "array", of: { type: "string" }, required: false },
     },
   };
+
+  // Catálogo de tags reconocidos.
+  const TAGS = new Set([
+    "miedo",
+
+  ]);
 
   // Catálogo de categorías reconocidas. Si añades una nueva, súmala
   // aquí; el validator la usa para detectar typos.
@@ -85,13 +96,13 @@
     { word: "OVEJA",        syllables: ["O","VE","JA"],             emoji: "🐑", categories: ["animales"] },
     { word: "TIGRE",        syllables: ["TI","GRE"],                emoji: "🐯", categories: ["animales"] },
     { word: "CERDO",        syllables: ["CER","DO"],                emoji: "🐷", categories: ["animales"] },
-    { word: "RATÓN",        syllables: ["RA","TÓN"],                emoji: "🐭", categories: ["animales"] },
+    { word: "RATÓN",        syllables: ["RA","TÓN"],                emoji: "🐭", categories: ["animales"], tags: ["miedo"] },
     { word: "CABALLO",      syllables: ["CA","BA","LLO"],           emoji: "🐴", categories: ["animales"] },
     { word: "CONEJO",       syllables: ["CO","NE","JO"],            emoji: "🐰", categories: ["animales"] },
     { word: "PULPO",        syllables: ["PUL","PO"],                emoji: "🐙", categories: ["animales"] },
     { word: "CARACOL",      syllables: ["CA","RA","COL"],           emoji: "🐌", categories: ["animales"] },
     { word: "ABEJA",        syllables: ["A","BE","JA"],             emoji: "🐝", categories: ["animales"] },
-    { word: "ARAÑA",        syllables: ["A","RA","ÑA"],             emoji: "🕷\u{FE0F}", categories: ["animales"] },
+    { word: "ARAÑA",        syllables: ["A","RA","ÑA"],             emoji: "🕷\u{FE0F}", categories: ["animales"], tags: ["miedo"] },
     { word: "HORMIGA",      syllables: ["HOR","MI","GA"],           emoji: "🐜", categories: ["animales"] },
     { word: "POLLITO",      syllables: ["PO","LLI","TO"],           emoji: "🐤", categories: ["animales"] },
     { word: "TORTUGA",      syllables: ["TOR","TU","GA"],           emoji: "🐢", categories: ["animales"] },
@@ -101,10 +112,10 @@
     { word: "JIRAFA",       syllables: ["JI","RA","FA"],            emoji: "🦒", categories: ["animales"] },
     { word: "CAMELLO",      syllables: ["CA","ME","LLO"],           emoji: "🐪", categories: ["animales"] },
     { word: "CEBRA",        syllables: ["CE","BRA"],                emoji: "🦓", categories: ["animales"] },
-    { word: "LAGARTO",      syllables: ["LA","GAR","TO"],           emoji: "🦎", categories: ["animales"] },
-    { word: "SERPIENTE",    syllables: ["SER","PIEN","TE"],         emoji: "🐍", categories: ["animales"] },
+    { word: "LAGARTO",      syllables: ["LA","GAR","TO"],           emoji: "🦎", categories: ["animales"], tags: ["miedo"] },
+    { word: "SERPIENTE",    syllables: ["SER","PIEN","TE"],         emoji: "🐍", categories: ["animales"], tags: ["miedo"] },
     { word: "ELEFANTE",     syllables: ["E","LE","FAN","TE"],       emoji: "🐘", categories: ["animales"] },
-    { word: "MURCIÉLAGO",   syllables: ["MUR","CIÉ","LA","GO"],     emoji: "🦇", categories: ["animales"] },
+    { word: "MURCIÉLAGO",   syllables: ["MUR","CIÉ","LA","GO"],     emoji: "🦇", categories: ["animales"], tags: ["miedo"] },
     { word: "PINGÜINO",     syllables: ["PIN","GÜI","NO"],          emoji: "🐧", categories: ["animales"] },
     { word: "COCODRILO",    syllables: ["CO","CO","DRI","LO"],      emoji: "🐊", categories: ["animales"] },
     { word: "MARIPOSA",     syllables: ["MA","RI","PO","SA"],       emoji: "🦋", categories: ["animales"] },
@@ -307,6 +318,15 @@
     }
   }
 
+  // Sanidad: cada tag declarado debe estar en el catálogo TAGS.
+  for (const e of DATA) {
+    for (const t of (e.tags || [])) {
+      if (!TAGS.has(t)) {
+        console.error(`[supeingo:dictionary] ${e.word}: tag desconocido "${t}"`);
+      }
+    }
+  }
+
   // Sanidad: las sílabas deben recomponer la palabra (ignorando acentos
   // y mayúsculas) — protege contra typos del estilo "PLA","TA","NO" para
   // PLÁTANO. Comparamos quitando diacríticos en ambos lados.
@@ -342,4 +362,5 @@
     return acc;
   }, {});
   window.SUPEINGO_CONTENT.dictionaryCategories = [...CATEGORIES];
+  window.SUPEINGO_CONTENT.dictionaryTags = [...TAGS];
 })();

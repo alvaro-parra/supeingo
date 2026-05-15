@@ -7,6 +7,7 @@ const HELP_HINTS = {
   builder: "Mira la imagen y escucha la palabra. Pulsa las sílabas en orden para formarla.",
   find:    "Mira las sílabas y escucha la palabra. Toca el dibujo que coincide.",
   memory:  "Voltea dos cartas y busca las que son iguales.",
+  search:  "Mira los dibujos de arriba. Arrastra o toca dos celdas para encontrar la palabra.",
   guess:   "Forma la palabra con las sílabas. Pulsa la 🔍 si necesitas una pista.",
 };
 
@@ -34,6 +35,7 @@ function App() {
       if (id === "builder") setRoute("builder");
       else if (id === "find") setRoute("find");
       else if (id === "memory") setRoute("memory");
+      else if (id === "search") setRoute("search");
       else if (id === "guess") setRoute("guess");
     }}/>;
   } else if (route === "builder") {
@@ -42,6 +44,8 @@ function App() {
     screen = <FindPicture onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   } else if (route === "memory") {
     screen = <Memory onBack={() => setRoute("play")} debug={!!settings.debug}/>;
+  } else if (route === "search") {
+    screen = <WordSearch onBack={() => setRoute("play")} debug={!!settings.debug} hideScary={!!settings.hideScary}/>;
   } else if (route === "guess") {
     screen = <GuessWord onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   }

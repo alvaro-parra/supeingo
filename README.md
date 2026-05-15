@@ -10,7 +10,7 @@ App educativa para que niños de 4+ años aprendan español. Mock interactivo HT
 
 | Campo | Detalle |
 |---|---|
-| **Público objetivo** | Niños a partir de 4 años, hablantes no nativos de español |
+| **Público objetivo** | Niños hablantes no nativos de español, ~5–9 años (primeros lectores). Mecánicas más sencillas accesibles desde antes; las que requieren leer escalan hacia arriba. |
 | **Mercado prioritario** | Internacional (enfoque inicial: Japón) |
 | **Objetivo pedagógico** | Reconocer letras (mayúsculas/minúsculas) → leer sílabas → dividir palabras → leer palabras completas |
 | **Dispositivos** | PC y tablet · Solo ratón/táctil · Sin gestos complejos |
@@ -108,7 +108,7 @@ Luego se referencia desde `data/dictionary.js` con `image: "img/foo.webp"`. `ima
 | **Constructor de palabras** | Ordenar sílabas para formar palabra | Reordenación | ✅ Implementado |
 | **Fábrica de sílabas** | Dividir palabra en bloques silábicos | Arrastre de bloques | Pendiente |
 | **Juego de memoria** | Voltear cartas y emparejar pares iguales | Clic en cartas | Pendiente |
-| **Sopa de letras** | Buscar palabras escondidas en cuadrícula | Arrastre sobre letras | Pendiente |
+| **Sopa de letras / sílabas** | Buscar palabras escondidas en cuadrícula. Dos pantallas (Palabras ↔ Sopa). Modo letras o sílabas. Direcciones →, ↓, ↗, ↘ (siempre hacia la derecha). Selección por arrastre o dos taps. | Arrastre / taps | En diseño |
 | **Crucigrama ilustrado** | Pista visual (imagen); completar palabra | Selección de opciones | Pendiente |
 | **Emparejar** | Conectar imagen con su palabra | Clic o arrastre | Pendiente |
 | **Laberinto** | Trazar camino correcto entre opciones | Arrastre o clic en dirección | Pendiente |
@@ -169,7 +169,7 @@ Ideal para diseñar; **no es producción**. Carga inicial lenta porque Babel com
 - Sustituir Web Speech API por audios pregrabados (Piper TTS, Edge TTS Neural) para garantizar consistencia entre dispositivos
 
 ### Restricciones de diseño e interacción — Must
-- Interfaz apta para niños de 4 años (texto grande, iconos claros, instrucciones mínimas)
+- Interfaz apta para primeros lectores (texto grande, iconos claros, instrucciones mínimas)
 - Áreas táctiles ≥ 44 px
 - Contenido en español únicamente
 - Apoyo visual constante (imágenes, emojis, iconos)

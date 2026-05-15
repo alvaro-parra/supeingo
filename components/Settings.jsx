@@ -10,6 +10,7 @@ const SETTINGS_KEY = "supeingo:settings:v1";
 const SETTINGS_DEFAULTS = {
   voiceURI: null,   // null = auto (la mejor voz española disponible)
   includeDigraphs: true, // incluir CH y LL como letras (enseñanza tradicional)
+  hideScary: true, // ocultar palabras con tag "miedo" (araña, serpiente…) — kid-safe por defecto
   // "debug" antes era "ttsDebug" (solo logs de TTS). Ahora es un modo
   // depuración general: TTS log + selector de palabra en Forma palabras.
   debug: false,
@@ -46,6 +47,10 @@ function applySettings(s) {
   // Pedagogía
   window.SUPEINGO_TEACHING_CONFIG = {
     includeDigraphs: !!s.includeDigraphs,
+  };
+  // Contenido (filtros de pool en juegos)
+  window.SUPEINGO_CONTENT_CONFIG = {
+    hideScary: !!s.hideScary,
   };
   // Debug — un único flag global. Componentes lo leen para decidir si
   // muestran panel TTS, selector de palabra en juegos, etc.
@@ -225,6 +230,12 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
           hint="Aparecen como letras propias en el abecedario."
           checked={!!settings.includeDigraphs}
           onChange={(v) => onChange({ includeDigraphs: v })}
+        />
+        <Toggle
+          label="Ocultar palabras que dan miedo"
+          hint="Quita araña, serpiente, murciélago, lagarto y ratón del pool de los juegos y del vocabulario."
+          checked={!!settings.hideScary}
+          onChange={(v) => onChange({ hideScary: v })}
         />
       </Section>
 

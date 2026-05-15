@@ -867,7 +867,28 @@ function TTSDebugPanel({ enabled }) {
   );
 }
 
+// Filtro "kid-safe": oculta palabras con tag "miedo" cuando el ajuste
+// "Ocultar palabras que dan miedo" está activo. Se usa en los juegos y
+// en Vocabulario para que el toggle tenga efecto global. Acepta tanto
+// entradas del diccionario (objeto con .tags) como strings — para los
+// strings, busca su entrada en dictionaryByWord para leer los tags.
+function isScaryEntry(entryOrWord) {
+  const cfg = window.SUPEINGO_CONTENT_CONFIG;
+  if (!cfg || !cfg.hideScary) return false;
+  if (!entryOrWord) return false;
+  if (typeof entryOrWord === "string") {
+    const dict = (window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionaryByWord) || {};
+    const e = dict[entryOrWord];
+    return !!(e && (e.tags || []).includes("miedo"));
+  }
+  return (entryOrWord.tags || []).includes("miedo");
+}
+function filterScary(arr) {
+  return (arr || []).filter(x => !isScaryEntry(x));
+}
+
 // Exportar
 Object.assign(window, {
   speak, whenTTSReady, Helper, HelperHint, HelpButton, SpeakButton, Star, Confetti, BigButton, ScreenHeader, TTSDebugPanel, WordImage,
+  isScaryEntry, filterScary,
 });
