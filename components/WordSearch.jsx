@@ -351,7 +351,10 @@ function WSPalabrasScreen({ words, found, onBack, onGoToSopa }) {
         gap: "var(--space-3)",
         position: "relative", zIndex: 2,
       }}>
-        {words.map(w => <WordCard key={w.word} entry={w} found={found.has(w.word)}/>)}
+        {words.map(w => {
+          const isFound = found.has(w.word);
+          return <WordCard key={w.word} entry={w} done={isFound} highlight={isFound}/>;
+        })}
       </div>
 
       <div style={{
@@ -404,22 +407,39 @@ function WSPalabrasScreen({ words, found, onBack, onGoToSopa }) {
   );
 }
 
-function WordCard({ entry, found }) {
+// `done` → muestra el tick (palabra completada).
+// `highlight` → resalta la tarjeta en verde. Va por separado para que
+// el repaso final (todas completadas) pueda mostrar el tick sin que
+// la lista entera se tiña de verde.
+function WordCard({ entry, done, highlight }) {
+  const borderColor = highlight ? "var(--ok)" : "var(--ink)";
   return (
-    <div style={{
-      background: found ? "var(--ok-soft)" : "var(--surface)",
-      border: `3px solid ${found ? "var(--ok)" : "var(--ink)"}`,
-      borderRadius: "var(--r-md)",
-      boxShadow: `0 3px 0 ${found ? "var(--ok)" : "var(--ink)"}`,
-      padding: "var(--space-3) var(--space-4)",
-      display: "flex",
-      alignItems: "center",
-      gap: "var(--space-3)",
-    }}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => speak(entry.word)}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speak(entry.word); } }}
+      onPointerDown={e => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = `0 1px 0 ${borderColor}`; }}
+      onPointerUp={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = `0 3px 0 ${borderColor}`; }}
+      onPointerLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = `0 3px 0 ${borderColor}`; }}
+      onPointerCancel={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = `0 3px 0 ${borderColor}`; }}
+      style={{
+        background: highlight ? "var(--ok-soft)" : "var(--surface)",
+        border: `3px solid ${borderColor}`,
+        borderRadius: "var(--r-md)",
+        boxShadow: `0 3px 0 ${borderColor}`,
+        padding: "var(--space-3) var(--space-4)",
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-3)",
+        cursor: "pointer",
+        userSelect: "none",
+        transition: "transform 120ms ease, box-shadow 120ms ease",
+      }}>
       <div style={{
         flexShrink: 0,
-        opacity: found ? 0.5 : 1,
-        filter: found ? "grayscale(0.55)" : "none",
+        opacity: highlight ? 0.5 : 1,
+        filter: highlight ? "grayscale(0.55)" : "none",
         transition: "opacity 240ms ease, filter 240ms ease",
       }}>
         <WordImage entry={entry} size={48}/>
@@ -429,7 +449,7 @@ function WordCard({ entry, found }) {
         fontWeight: 700,
         fontSize: "calc(22px * var(--scale))",
         letterSpacing: "0.01em",
-        color: found ? "var(--ok)" : "var(--ink)",
+        color: highlight ? "var(--ok)" : "var(--ink)",
         display: "flex",
         flexWrap: "wrap",
         alignItems: "baseline",
@@ -444,7 +464,7 @@ function WordCard({ entry, found }) {
           </React.Fragment>
         ))}
       </div>
-      {found && (
+      {done && (
         <div style={{
           flexShrink: 0,
           width: "calc(30px * var(--scale))",
@@ -823,7 +843,7 @@ function WordSearchSessionComplete({ words, onPlayAgain, onBack }) {
           flexDirection: "column",
           gap: "var(--space-3)",
         }}>
-          {words.map(w => <WordCard key={w.word} entry={w} found={true}/>)}
+          {words.map(w => <WordCard key={w.word} entry={w} done={true} highlight={false}/>)}
         </div>
       </div>
 
@@ -833,9 +853,9 @@ function WordSearchSessionComplete({ words, onPlayAgain, onBack }) {
         margin: "var(--space-5) var(--space-4) 0",
         position: "relative", zIndex: 2,
       }}>
-        <BigButton color="accent" icon="🔁" onClick={onPlayAgain}>
+        <ActionButton variant="primary" icon="reload" onClick={onPlayAgain}>
           Jugar de nuevo
-        </BigButton>
+        </ActionButton>
       </div>
     </div>
   );
