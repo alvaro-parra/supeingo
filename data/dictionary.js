@@ -91,7 +91,7 @@
     { word: "ERIZO",        syllables: ["E","RI","ZO"],             emoji: "🦔", categories: ["animales"] },
     { word: "CABRA",        syllables: ["CA","BRA"],                emoji: "🐐", categories: ["animales"] },
     { word: "OVEJA",        syllables: ["O","VE","JA"],             emoji: "🐑", categories: ["animales"] },
-    { word: "TIGRE",        syllables: ["TI","GRE"],                emoji: "🐯", categories: ["animales"] },
+    { word: "TIGRE",        syllables: ["TI","GRE"],                emoji: "🐯", categories: ["animales"], tags: ["miedo"] },
     { word: "CERDO",        syllables: ["CER","DO"],                emoji: "🐷", categories: ["animales"] },
     { word: "RATÓN",        syllables: ["RA","TÓN"],                emoji: "🐭", categories: ["animales"], tags: ["miedo"] },
     { word: "CABALLO",      syllables: ["CA","BA","LLO"],           emoji: "🐴", categories: ["animales"] },
