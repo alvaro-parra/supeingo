@@ -233,7 +233,7 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
         />
         <Toggle
           label="Ocultar palabras que dan miedo"
-          hint="Quita araña, serpiente, murciélago, lagarto y ratón del pool de los juegos y del vocabulario."
+          hint="Quita palabras que pueden asustar del pool de juegos y vocabulario."
           checked={!!settings.hideScary}
           onChange={(v) => onChange({ hideScary: v })}
         />
