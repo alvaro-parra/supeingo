@@ -221,25 +221,19 @@ function speak(text, opts = {}) {
 
 // ------------------------------------------------------------
 // WordImage — renderiza la representación gráfica de una palabra del
-// diccionario. Si la entrada tiene `svg`, carga ese fichero desde
-// assets/svg/; si no, cae al `emoji` de la entrada. Si no hay ninguno
-// de los dos, devuelve un placeholder discreto (cuadrado punteado) en
-// vez de romper la UI.
+// diccionario. Si la entrada tiene `image`, carga ese fichero desde
+// assets/; si no, cae al `emoji` de la entrada. Si no hay ninguno de
+// los dos, devuelve un placeholder discreto (cuadrado punteado) en vez
+// de romper la UI.
 // `entry` puede ser una entrada de diccionario o cualquier objeto con
-// `{ svg?, emoji? }`. `size` es el lado en píxeles a la escala 1×; si
+// `{ image?, emoji? }`. `size` es el lado en píxeles a la escala 1×; si
 // `scale` es true (por defecto) se aplica `var(--scale)` para que crezca
 // con el ajuste de tamaño global.
 // ------------------------------------------------------------
 function WordImage({ entry, size = 32, scale = true, style = {} }) {
   const px = scale ? `calc(${size}px * var(--scale))` : `${size}px`;
-  // `image` (genérico) lleva ruta+extensión relativa a assets/ y soporta
-  // cualquier formato (svg, png, webp…). `svg` es la convención antigua
-  // y se mantiene por compatibilidad: equivale a `image: "svg/X.svg"`.
-  const imgSrc = entry && entry.image
-    ? `assets/${entry.image}`
-    : entry && entry.svg
-      ? `assets/svg/${entry.svg}`
-      : null;
+  // `image` lleva ruta+extensión relativa a assets/ (png/webp/svg/…).
+  const imgSrc = entry && entry.image ? `assets/${entry.image}` : null;
   if (imgSrc) {
     return (
       <img
@@ -265,7 +259,7 @@ function WordImage({ entry, size = 32, scale = true, style = {} }) {
       >{entry.emoji}</span>
     );
   }
-  // Sin emoji ni svg — placeholder discreto que no se confunde con
+  // Sin emoji ni image — placeholder discreto que no se confunde con
   // contenido real. Cuadrado punteado al tamaño esperado.
   return (
     <span

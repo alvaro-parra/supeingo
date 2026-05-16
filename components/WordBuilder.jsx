@@ -108,7 +108,7 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
   // siguientes (useMemo, useEffect) no revienten al desreferenciar
   // target.word / target.syllables. La pantalla real de fin de sesión
   // se renderiza más abajo con un early-return ANTES del JSX principal.
-  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null };
+  const target = session[idx] || { word: "", syllables: [], emoji: "" };
 
   // Histórico de aciertos en esta sesión: [{ word, syllables, emoji, attempts }]
   const [completed, setCompleted] = useState([]);
@@ -216,7 +216,6 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
         word: target.word,
         syllables: target.syllables,
         emoji: target.emoji,
-        svg: target.svg,
         image: target.image,
         attempts,
       };
@@ -357,8 +356,8 @@ function WordBuilder({ onBack, exampleWord, debug = false }) {
             opacity: status === "flying" ? 0 : 1,
             transition: "opacity 200ms ease",
             // El filter drop-shadow lo aplica WordImage internamente para
-            // SVGs; para emojis lo replicamos aquí para mantener look.
-            filter: target.svg ? "none" : "drop-shadow(0 4px 6px rgba(0,0,0,0.08))",
+            // imágenes; para emojis lo replicamos aquí para mantener look.
+            filter: target.image ? "none" : "drop-shadow(0 4px 6px rgba(0,0,0,0.08))",
             fontSize: "calc(64px * var(--scale))",
             lineHeight: 1,
           }}
@@ -598,7 +597,7 @@ function DebugWordPicker({ allWords, current, onPick }) {
                 textAlign: "left",
               }}
             >
-              <span style={{ width: 18, textAlign: "center" }}>{w.svg ? "🖼" : (w.emoji || "·")}</span>
+              <span style={{ width: 18, textAlign: "center" }}>{w.image ? "🖼" : (w.emoji || "·")}</span>
               <span style={{ fontWeight: 700 }}>{w.word}</span>
               <span style={{ marginLeft: "auto", color: "#7a808a" }}>{w.syllables.join("·")}</span>
             </button>

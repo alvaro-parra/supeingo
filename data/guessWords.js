@@ -5,7 +5,7 @@
 // de tamaño (más pequeño/grande que una palabra concreta) y color
 // opcional.
 //
-// El emoji/svg/sílabas/categoría se hidratan desde data/dictionary.js
+// El emoji/image/sílabas/categoría se hidratan desde data/dictionary.js
 // igual que hace data/alphabet.js — no se duplican aquí.
 //
 // Conscientemente NO usamos todo el diccionario: este juego empieza
@@ -301,7 +301,7 @@
   window.SUPEINGO_VALIDATE(SCHEMA, DATA);
   window.SUPEINGO_REGISTER("guessWords", SCHEMA, DATA);
 
-  // Hidratar desde el diccionario: emoji/svg/sílabas/categoría.
+  // Hidratar desde el diccionario: emoji/image/sílabas/categoría.
   const dict = window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionaryByWord;
   if (!dict) {
     console.error("[supeingo:guessWords] dictionary no cargado — carga data/dictionary.js antes.");
@@ -311,7 +311,7 @@
       const d = dict[e.word];
       if (!d) { missing.push(e.word); continue; }
       if (d.emoji)      e.emoji      = d.emoji;
-      if (d.svg)        e.svg        = d.svg;
+      if (d.image)      e.image      = d.image;
       if (d.syllables)  e.syllables  = d.syllables;
       if (d.categories) e.categories = d.categories;
     }

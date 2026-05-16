@@ -57,7 +57,7 @@
   window.SUPEINGO_VALIDATE(SCHEMA, DATA);
   window.SUPEINGO_REGISTER("alphabet", SCHEMA, DATA);
 
-  // Hidratar emoji/svg/sílabas desde el diccionario. Cada `word` DEBE
+  // Hidratar emoji/image/sílabas desde el diccionario. Cada `word` DEBE
   // existir allí; si no, lo registramos como error en consola para
   // que se note durante el desarrollo.
   const dict = window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionaryByWord;
@@ -69,7 +69,7 @@
       const d = dict[e.word];
       if (!d) { missing.push(e.word); continue; }
       if (d.emoji)     e.emoji     = d.emoji;
-      if (d.svg)       e.svg       = d.svg;
+      if (d.image)     e.image     = d.image;
       if (d.syllables) e.syllables = d.syllables;
     }
     if (missing.length) {

@@ -39,7 +39,7 @@ function FindPicture({ onBack, debug = false }) {
   const allEntries = useMemo(() => {
     const cats = new Set(FP_CATEGORIES);
     return window.SUPEINGO_CONTENT.dictionary.filter(
-      e => (e.categories || []).some(c => cats.has(c)) && (e.svg || e.emoji) && !isScaryEntry(e)
+      e => (e.categories || []).some(c => cats.has(c)) && (e.image || e.emoji) && !isScaryEntry(e)
     );
   }, []);
   // Índice por categoría dentro del subconjunto habilitado — se usa
@@ -74,7 +74,7 @@ function FindPicture({ onBack, debug = false }) {
 
   const [idx, setIdx] = useState(0);
   const sessionDone = idx >= session.length;
-  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null, categories: [] };
+  const target = session[idx] || { word: "", syllables: [], emoji: "", categories: [] };
   // Auto-shrink discreto del rótulo según longitud (letras + separadores ·)
   // para que palabras como ZANAHORIA o HELICÓPTERO no toquen los bordes.
   const _vlen = target.word.length + Math.max(0, target.syllables.length - 1);
@@ -143,7 +143,6 @@ function FindPicture({ onBack, debug = false }) {
         word: target.word,
         syllables: target.syllables,
         emoji: target.emoji,
-        svg: target.svg,
         image: target.image,
         attempts,
       };

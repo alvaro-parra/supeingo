@@ -96,7 +96,7 @@ function _wsPickWords(seed, opts) {
     (e.categories || []).some(c => cats.has(c))
     && e.word.length >= 3
     && e.word.length <= WS_MAX_LEN
-    && (e.svg || e.emoji || e.image)
+    && (e.image || e.emoji)
     && /^[A-Z]+$/.test(e.word)
     && !(hideScary && (e.tags || []).includes("miedo"))
   );

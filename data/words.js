@@ -92,8 +92,7 @@
       word: d.word,
       syllables: d.syllables,
       emoji: d.emoji,
-      svg: d.svg,           // opcional — el renderer lo prefiere si existe
-      image: d.image,       // opcional — más prioritario que svg/emoji
+      image: d.image,       // opcional — prioritario sobre emoji si existe
       decoys: e.decoys || [],
     };
   }).filter(Boolean);

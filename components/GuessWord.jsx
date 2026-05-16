@@ -93,7 +93,7 @@ function GuessWord({ onBack, debug = false }) {
 
   const [idx, setIdx] = useState(0);
   const sessionDone = idx >= session.length;
-  const target = session[idx] || { word: "", syllables: [], emoji: "", svg: null, categories: [] };
+  const target = session[idx] || { word: "", syllables: [], emoji: "", categories: [] };
 
   // Banco de sílabas para la palabra actual.
   const initialBank = useMemo(() => _gwBuildBank(target, allEntries),
@@ -273,7 +273,6 @@ function GuessWord({ onBack, debug = false }) {
         word: target.word,
         syllables: target.syllables,
         emoji: target.emoji,
-        svg: target.svg,
         image: target.image,
         // Este juego siempre termina en éxito (los distractores se purgan
         // hasta dejar solo las correctas), así que cada palabra acertada

@@ -43,7 +43,7 @@ function Memory({ onBack, debug = false }) {
   const allEntries = useMemo(() => {
     const cats = new Set(MEM_CATEGORIES);
     return window.SUPEINGO_CONTENT.dictionary.filter(
-      e => (e.categories || []).some(c => cats.has(c)) && (e.svg || e.emoji) && !isScaryEntry(e)
+      e => (e.categories || []).some(c => cats.has(c)) && (e.image || e.emoji) && !isScaryEntry(e)
     );
   }, []);
 
@@ -95,7 +95,6 @@ function Memory({ onBack, debug = false }) {
         word: cardA.entry.word,
         syllables: cardA.entry.syllables,
         emoji: cardA.entry.emoji,
-        svg: cardA.entry.svg,
         image: cardA.entry.image,
         attempts: 1,
       };

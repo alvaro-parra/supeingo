@@ -27,16 +27,13 @@
       word:      { type: "string", required: true },
       syllables: { type: "array", of: { type: "string" }, required: true },
       // Representación gráfica:
-      //  - `image` (genérico): ruta+extensión relativa a assets/, p.ej.
-      //    "img/jamon.png" o "svg/manzana.svg". Soporta png/webp/svg/...
-      //  - `svg` (legacy): nombre de fichero dentro de assets/svg/.
-      //    Equivale a `image: "svg/<nombre>"` y se mantiene por compat.
+      //  - `image`: ruta+extensión relativa a assets/, p.ej. "img/jamon.webp".
+      //    Soporta cualquier formato (png/webp/svg/…).
       //  - `emoji`: fallback unicode si no hay imagen.
-      // `image` tiene prioridad sobre `svg`, y ambas sobre `emoji`.
-      // Todos opcionales a nivel de schema, pero AL MENOS UNO debe
-      // estar presente — se comprueba abajo con un check custom.
+      // `image` tiene prioridad sobre `emoji`. Ambos opcionales a nivel
+      // de schema, pero AL MENOS UNO debe estar presente — se comprueba
+      // abajo con un check custom.
       emoji:     { type: "string", required: false },
-      svg:       { type: "string", required: false },
       image:     { type: "string", required: false },
       // Categorías a las que pertenece la palabra. Sirve a juegos que
       // agrupan visualmente (FindPicture/Memory mezclan entradas dentro
@@ -301,10 +298,10 @@
   }
 
   // Sanidad: cada entrada debe tener al menos una representación gráfica
-  // (emoji o svg). Sin esto, el renderer no sabría qué mostrar.
+  // (emoji o image). Sin esto, el renderer no sabría qué mostrar.
   for (const e of DATA) {
-    if (!e.emoji && !e.svg && !e.image) {
-      console.error(`[supeingo:dictionary] ${e.word}: necesita 'emoji', 'svg' o 'image'`);
+    if (!e.emoji && !e.image) {
+      console.error(`[supeingo:dictionary] ${e.word}: necesita 'emoji' o 'image'`);
     }
   }
 
