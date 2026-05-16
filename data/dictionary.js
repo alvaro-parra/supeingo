@@ -121,7 +121,7 @@
     { word: "MARIPOSA",     syllables: ["MA","RI","PO","SA"],       emoji: "🦋", categories: ["animales"] },
 
     // ── Frutas y verduras ────────────────────────────────────
-    { word: "MANZANA",      syllables: ["MAN","ZA","NA"],           emoji: "🍎", svg: "manzana.svg", categories: ["vegetales"] },
+    { word: "MANZANA",      syllables: ["MAN","ZA","NA"],           emoji: "🍎", categories: ["vegetales"] },
     { word: "PERA",         syllables: ["PE","RA"],                 emoji: "🍐", categories: ["vegetales"] },
     { word: "UVA",          syllables: ["U","VA"],                  emoji: "🍇", categories: ["vegetales"] },
     { word: "FRESA",        syllables: ["FRE","SA"],                emoji: "🍓", categories: ["vegetales"] },
