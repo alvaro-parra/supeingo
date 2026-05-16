@@ -79,7 +79,7 @@
     { word: "VACA",         syllables: ["VA","CA"],                 emoji: "🐮", categories: ["animales"] },
     { word: "FOCA",         syllables: ["FO","CA"],                 emoji: "🦭", categories: ["animales"] },
     { word: "TORO",         syllables: ["TO","RO"],                 emoji: "🐂", categories: ["animales"] },
-    { word: "LOBO",         syllables: ["LO","BO"],                 emoji: "🐺", categories: ["animales"] },
+    { word: "LOBO",         syllables: ["LO","BO"],                 emoji: "🐺", categories: ["animales"], tags: ["miedo"] },
     { word: "ZORRO",        syllables: ["ZO","RRO"],                emoji: "🦊", categories: ["animales"] },
     { word: "MONO",         syllables: ["MO","NO"],                 emoji: "🐵", categories: ["animales"] },
     { word: "PEZ",          syllables: ["PEZ"],                     emoji: "🐟", categories: ["animales"] },
@@ -107,7 +107,7 @@
     { word: "POLLITO",      syllables: ["PO","LLI","TO"],           emoji: "🐤", categories: ["animales"] },
     { word: "TORTUGA",      syllables: ["TOR","TU","GA"],           emoji: "🐢", categories: ["animales"] },
     { word: "DELFÍN",       syllables: ["DEL","FÍN"],               emoji: "🐬", categories: ["animales"] },
-    { word: "TIBURÓN",      syllables: ["TI","BU","RÓN"],           emoji: "🦈", categories: ["animales"] },
+    { word: "TIBURÓN",      syllables: ["TI","BU","RÓN"],           emoji: "🦈", categories: ["animales"], tags: ["miedo"] },
     { word: "BALLENA",      syllables: ["BA","LLE","NA"],           emoji: "🐳", categories: ["animales"] },
     { word: "JIRAFA",       syllables: ["JI","RA","FA"],            emoji: "🦒", categories: ["animales"] },
     { word: "CAMELLO",      syllables: ["CA","ME","LLO"],           emoji: "🐪", categories: ["animales"] },
@@ -117,7 +117,7 @@
     { word: "ELEFANTE",     syllables: ["E","LE","FAN","TE"],       emoji: "🐘", categories: ["animales"] },
     { word: "MURCIÉLAGO",   syllables: ["MUR","CIÉ","LA","GO"],     emoji: "🦇", categories: ["animales"], tags: ["miedo"] },
     { word: "PINGÜINO",     syllables: ["PIN","GÜI","NO"],          emoji: "🐧", categories: ["animales"] },
-    { word: "COCODRILO",    syllables: ["CO","CO","DRI","LO"],      emoji: "🐊", categories: ["animales"] },
+    { word: "COCODRILO",    syllables: ["CO","CO","DRI","LO"],      emoji: "🐊", categories: ["animales"], tags: ["miedo"] },
     { word: "MARIPOSA",     syllables: ["MA","RI","PO","SA"],       emoji: "🦋", categories: ["animales"] },
 
     // ── Frutas y verduras ────────────────────────────────────
@@ -206,7 +206,7 @@
     { word: "AGUA",         syllables: ["A","GUA"],                 emoji: "💧", categories: ["naturaleza"] },
     { word: "MAR",          syllables: ["MAR"],                     emoji: "🌊", categories: ["naturaleza"] },
     { word: "MONTAÑA",      syllables: ["MON","TA","ÑA"],           emoji: "⛰\u{FE0F}", categories: ["naturaleza"] },
-    { word: "VOLCÁN",       syllables: ["VOL","CÁN"],               emoji: "🌋", categories: ["naturaleza"] },
+    { word: "VOLCÁN",       syllables: ["VOL","CÁN"],               emoji: "🌋", categories: ["naturaleza"], tags: ["miedo"] },
     { word: "PLAYA",        syllables: ["PLA","YA"],                emoji: "🏖\u{FE0F}", categories: ["naturaleza"] },
     { word: "ISLA",         syllables: ["IS","LA"],                 emoji: "🏝\u{FE0F}", categories: ["naturaleza"] },
     { word: "TIERRA",       syllables: ["TIE","RRA"],               emoji: "🌍", categories: ["naturaleza"] },
@@ -279,10 +279,9 @@
     { word: "JUGUETE",      syllables: ["JU","GUE","TE"],           image: "img/juguete.webp" },
 
     // ── Otros / fantasía ─────────────────────────────────────
-    { word: "DRAGÓN",       syllables: ["DRA","GÓN"],               emoji: "🐉", categories: ["fantasia"] },
+    { word: "DRAGÓN",       syllables: ["DRA","GÓN"],               emoji: "🐉", categories: ["fantasia"], tags: ["miedo"] },
     { word: "ROBOT",        syllables: ["RO","BOT"],                emoji: "🤖", categories: ["fantasia"] },
-    { word: "FANTASMA",     syllables: ["FAN","TAS","MA"],          emoji: "👻", categories: ["fantasia"] },
-    { word: "CALABAZA",     syllables: ["CA","LA","BA","ZA"],       emoji: "🎃", categories: ["fantasia"] },
+    { word: "FANTASMA",     syllables: ["FAN","TAS","MA"],          emoji: "👻", categories: ["fantasia"], tags: ["miedo"] },
     { word: "MAGO",         syllables: ["MA","GO"],                 emoji: "🧙", categories: ["fantasia"] },
     { word: "HADA",         syllables: ["HA","DA"],                 emoji: "🧚", categories: ["fantasia"] },
     { word: "REGALO",       syllables: ["RE","GA","LO"],            emoji: "🎁", categories: ["fantasia"] },
