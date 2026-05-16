@@ -1,26 +1,26 @@
 // "Sopa de letras" — encuentra palabras escondidas en una cuadrícula.
 //
-// Dos pantallas internas:
-//   - Palabras: lista grande de las 5 palabras objetivo (icono + sílabas).
-//   - Sopa: cuadrícula 7×8 + tira de iconos en pequeño arriba (botón a Palabras).
+// Pantalla única: header + lista compacta de 4 palabras (rejilla 2×2)
+// + cuadrícula 7×8. El niño ve siempre qué buscar y la sopa al mismo
+// tiempo, sin alternar entre dos pantallas.
 //
 // Selección por arrastre Y por dos taps. Direcciones de colocación
-// → ↓ ↘ ↗ (siempre avanzando a la derecha); aceptamos el arrastre
-// inverso porque selecciona la misma palabra al revés.
+// sólo → y ↓ (sin diagonales — demasiado difícil para primeros
+// lectores y rompe la asociación natural izquierda-derecha que
+// estamos enseñando). Aceptamos el arrastre inverso porque selecciona
+// la misma palabra al revés.
 //
 // Pool: animales del diccionario, len ≤ 8, sólo A–Z (sin Ñ ni tildes).
 
 const WS_CATEGORIES = ["animales"];
-const WS_WORD_COUNT = 5;
+const WS_WORD_COUNT = 4;
 const WS_MAX_LEN = 8;
 const WS_GRID = { rows: 8, cols: 7 };
 
-// Direcciones de COLOCACIÓN — sólo "hacia la derecha".
+// Direcciones de COLOCACIÓN — horizontal y vertical, sin diagonales.
 const WS_DIRS = [
   { dr:  0, dc: 1 },  // →
   { dr:  1, dc: 0 },  // ↓
-  { dr:  1, dc: 1 },  // ↘
-  { dr: -1, dc: 1 },  // ↗
 ];
 
 // Direcciones para escaneo de malsonantes — las 8 (incluye invertidas).
@@ -261,7 +261,6 @@ function WordSearch({ onBack, debug = false, hideScary = false }) {
   );
   const [found, setFound] = useState(() => new Set());
   const [reveal, setReveal] = useState(null);
-  const [screen, setScreen] = useState("palabras");
   const [confettiOn, setConfettiOn] = useState(false);
   const revealTimerRef = useRef(null);
   const confettiTimerRef = useRef(null);
@@ -291,7 +290,6 @@ function WordSearch({ onBack, debug = false, hideScary = false }) {
     setReveal(null);
     setConfettiOn(false);
     setSeed(Math.floor(Math.random() * 1e9));
-    setScreen("palabras");
   };
 
   if (sessionDone) {
@@ -303,23 +301,21 @@ function WordSearch({ onBack, debug = false, hideScary = false }) {
       <div className="bg-decor"/>
       <Confetti active={confettiOn}/>
 
-      {screen === "palabras" ? (
-        <WSPalabrasScreen
-          words={words}
-          found={found}
-          onBack={onBack}
-          onGoToSopa={() => setScreen("sopa")}
-        />
-      ) : (
-        <WSSopaScreen
-          words={words}
-          board={board}
-          found={found}
-          onFound={handleFound}
-          onBack={onBack}
-          onGoToPalabras={() => setScreen("palabras")}
-        />
-      )}
+      <ScreenHeader
+        title="Animales"
+        onBack={onBack}
+        right={<ProgressChip current={found.size} total={words.length}/>}
+      />
+      <WSWordList words={words} found={found}/>
+      <WSLetterGrid board={board} found={found} onFound={handleFound}/>
+      <div style={{
+        textAlign: "center",
+        color: "var(--ink-soft)",
+        fontWeight: 600,
+        fontSize: "calc(13px * var(--scale))",
+        padding: "var(--space-3) var(--space-4) var(--space-4)",
+        position: "relative", zIndex: 2,
+      }}>Arrastra o toca dos celdas</div>
 
       {reveal && <MatchReveal entry={reveal}/>}
     </div>
@@ -327,83 +323,96 @@ function WordSearch({ onBack, debug = false, hideScary = false }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Pantalla Palabras — lista + CTA a la sopa
+// WSWordList — 4 palabras en rejilla 2×2 (compacta) sobre la sopa.
 // ─────────────────────────────────────────────────────────────
-function WSPalabrasScreen({ words, found, onBack, onGoToSopa }) {
+// Versión compacta para mostrar todas las palabras junto a la
+// cuadrícula sin robarle altura. Mismo lenguaje visual que WordCard
+// (borde grueso, sombra de cartón, estados encontrado/pendiente).
+function WSWordList({ words, found }) {
   return (
-    <>
-      <ScreenHeader
-        title="Animales"
-        onBack={onBack}
-        right={<ProgressChip current={found.size} total={words.length}/>}
-      />
-      <div style={{
-        padding: "0 var(--space-5)",
-        color: "var(--ink-soft)",
-        fontSize: "calc(15px * var(--scale))",
-        fontWeight: 500,
-        position: "relative", zIndex: 2,
-      }}>Encuentra estas {words.length} palabras en la sopa</div>
+    <div style={{
+      margin: "var(--space-2) var(--space-4) var(--space-3)",
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "var(--space-2)",
+      position: "relative", zIndex: 2,
+    }}>
+      {words.map(w => (
+        <WSCompactCard key={w.word} entry={w} found={found.has(w.word)}/>
+      ))}
+    </div>
+  );
+}
 
-      <div style={{
-        margin: "var(--space-3) var(--space-4) var(--space-4)",
-        display: "grid",
-        gap: "var(--space-3)",
-        position: "relative", zIndex: 2,
+function WSCompactCard({ entry, found }) {
+  const borderColor = found ? "var(--ok)" : "var(--ink)";
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => speak(entry.word)}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speak(entry.word); } }}
+      onPointerDown={e => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = `0 1px 0 ${borderColor}`; }}
+      onPointerUp={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = `0 3px 0 ${borderColor}`; }}
+      onPointerLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = `0 3px 0 ${borderColor}`; }}
+      onPointerCancel={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = `0 3px 0 ${borderColor}`; }}
+      style={{
+        background: found ? "var(--ok-soft)" : "var(--surface)",
+        border: `2.5px solid ${borderColor}`,
+        borderRadius: "var(--r-sm)",
+        boxShadow: `0 3px 0 ${borderColor}`,
+        padding: "var(--space-2) var(--space-3)",
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-2)",
+        minHeight: "calc(56px * var(--scale))",
+        cursor: "pointer",
+        userSelect: "none",
+        transition: "transform 120ms ease, box-shadow 120ms ease",
       }}>
-        {words.map(w => {
-          const isFound = found.has(w.word);
-          return <WordCard key={w.word} entry={w} done={isFound} highlight={isFound}/>;
-        })}
-      </div>
-
       <div style={{
-        margin: "auto var(--space-4) var(--space-4)",
-        position: "relative", zIndex: 2,
+        flexShrink: 0,
+        opacity: found ? 0.5 : 1,
+        filter: found ? "grayscale(0.55)" : "none",
+        transition: "opacity 240ms ease, filter 240ms ease",
       }}>
-        <button
-          onClick={onGoToSopa}
-          style={{
-            width: "100%",
-            background: "var(--accent-strong)",
-            border: "3px solid var(--ink)",
-            borderRadius: "var(--r-md)",
-            boxShadow: "0 5px 0 var(--ink)",
-            color: "#fff",
-            fontFamily: "Fredoka, sans-serif",
-            fontWeight: 700,
-            fontSize: "calc(20px * var(--scale))",
-            padding: "var(--space-4) var(--space-5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--space-3)",
-            minHeight: "var(--tap)",
-            cursor: "pointer",
-            transition: "transform 120ms ease, box-shadow 120ms ease",
-          }}
-          onPointerDown={e => {
-            e.currentTarget.style.transform = "translateY(4px)";
-            e.currentTarget.style.boxShadow = "0 1px 0 var(--ink)";
-          }}
-          onPointerUp={e => {
-            e.currentTarget.style.transform = "";
-            e.currentTarget.style.boxShadow = "0 5px 0 var(--ink)";
-          }}
-          onPointerLeave={e => {
-            e.currentTarget.style.transform = "";
-            e.currentTarget.style.boxShadow = "0 5px 0 var(--ink)";
-          }}
-          onPointerCancel={e => {
-            e.currentTarget.style.transform = "";
-            e.currentTarget.style.boxShadow = "0 5px 0 var(--ink)";
-          }}
-        >
-          <span>Ir a la sopa</span>
-          <span style={{ fontSize: "1.1em", lineHeight: 1 }}>↓</span>
-        </button>
+        <WordImage entry={entry} size={32}/>
       </div>
-    </>
+      <div style={{
+        fontFamily: "Andika, Fredoka, sans-serif",
+        fontWeight: 700,
+        fontSize: "calc(17px * var(--scale))",
+        letterSpacing: "0.01em",
+        color: found ? "var(--ok)" : "var(--ink)",
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "baseline",
+        gap: "0 0.1em",
+        flex: 1,
+        minWidth: 0,
+        lineHeight: 1.1,
+      }}>
+        {entry.syllables.map((s, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <span aria-hidden style={{ color: "var(--ink-faint)", fontWeight: 500 }}>·</span>}
+            <span>{s}</span>
+          </React.Fragment>
+        ))}
+      </div>
+      {found && (
+        <div style={{
+          flexShrink: 0,
+          width: "calc(20px * var(--scale))",
+          height: "calc(20px * var(--scale))",
+          background: "var(--ok)",
+          color: "#fff",
+          borderRadius: "50%",
+          display: "grid", placeItems: "center",
+          fontWeight: 800,
+          fontSize: "calc(11px * var(--scale))",
+        }}>✓</div>
+      )}
+    </div>
   );
 }
 
@@ -482,30 +491,8 @@ function WordCard({ entry, done, highlight }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Pantalla Sopa — header + tira de iconos + cuadrícula
+// ProgressChip — "● 2/4" en el header
 // ─────────────────────────────────────────────────────────────
-function WSSopaScreen({ words, board, found, onFound, onBack, onGoToPalabras }) {
-  return (
-    <>
-      <ScreenHeader
-        title="Animales"
-        onBack={onBack}
-        right={<ProgressChip current={found.size} total={words.length}/>}
-      />
-      <WSIconStrip words={words} found={found} onClick={onGoToPalabras}/>
-      <WSLetterGrid board={board} found={found} onFound={onFound}/>
-      <div style={{
-        textAlign: "center",
-        color: "var(--ink-soft)",
-        fontWeight: 600,
-        fontSize: "calc(13px * var(--scale))",
-        padding: "var(--space-3) var(--space-4) var(--space-4)",
-        position: "relative", zIndex: 2,
-      }}>Arrastra o toca dos celdas (inicio y final)</div>
-    </>
-  );
-}
-
 function ProgressChip({ current, total }) {
   return (
     <div style={{
@@ -521,78 +508,6 @@ function ProgressChip({ current, total }) {
     }}>
       <span style={{ color: "var(--ok)" }}>●</span> {current}/{total}
     </div>
-  );
-}
-
-function WSIconStrip({ words, found, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label="Ver lista de palabras"
-      style={{
-        position: "relative",
-        margin: "var(--space-2) auto var(--space-4)",
-        maxWidth: "calc(100% - 28px)",
-        background: "var(--surface)",
-        border: "3px solid var(--ink)",
-        borderRadius: "var(--r-md)",
-        boxShadow: "0 4px 0 var(--ink)",
-        padding: "16px 12px 10px",
-        display: "grid",
-        gridTemplateColumns: `repeat(${words.length}, 56px)`,
-        justifyContent: "center",
-        gap: 10,
-        cursor: "pointer",
-        font: "inherit",
-        color: "inherit",
-        zIndex: 2,
-      }}
-    >
-      {/* "Grip" superior — pista visual de que esto viene desde arriba */}
-      <span aria-hidden style={{
-        position: "absolute",
-        top: 5, left: "50%", transform: "translateX(-50%)",
-        width: 36, height: 4,
-        borderRadius: 999,
-        background: "var(--ink-faint)",
-      }}/>
-      {/* Pildorita "↑ Palabras" en esquina inferior */}
-      <span aria-hidden style={{
-        position: "absolute",
-        right: 12, bottom: -10,
-        background: "var(--surface)",
-        border: "2px solid var(--ink)",
-        color: "var(--ink-soft)",
-        fontSize: "calc(11px * var(--scale))",
-        fontWeight: 700,
-        letterSpacing: "0.06em",
-        padding: "2px 8px",
-        borderRadius: 999,
-        boxShadow: "0 2px 0 var(--ink)",
-      }}>↑ Palabras</span>
-
-      {words.map(w => {
-        const isFound = found.has(w.word);
-        return (
-          <div key={w.word} style={{
-            aspectRatio: "1 / 1",
-            borderRadius: "var(--r-sm)",
-            background: isFound ? "var(--ok-soft)" : "transparent",
-            display: "grid",
-            placeItems: "center",
-            transition: "background 200ms ease",
-          }}>
-            <div style={{
-              opacity: isFound ? 0.4 : 1,
-              filter: isFound ? "grayscale(0.7)" : "none",
-              transition: "opacity 200ms ease, filter 200ms ease",
-            }}>
-              <WordImage entry={w} size={30}/>
-            </div>
-          </div>
-        );
-      })}
-    </button>
   );
 }
 
