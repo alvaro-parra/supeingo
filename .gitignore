@@ -9,6 +9,9 @@
 *.swp
 *.swo
 
+# Claude Code (config/estado local)
+.claude/
+
 # Node (por si en el futuro migras a Vite)
 node_modules/
 dist/
