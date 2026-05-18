@@ -205,33 +205,28 @@ function _wsCleanBadWords(grid, placements, rnd) {
 }
 
 // ─── Lógica de selección ──────────────────────────────────────
-function _wsSnapPath(a, b, nRows, nCols) {
-  const dr = b.r - a.r, dc = b.c - a.c;
-  if (dr === 0 && dc === 0) return [a];
-  const adr = Math.abs(dr), adc = Math.abs(dc);
-  let sr, sc, len;
-  if (adr > adc * 2.5)      { sr = Math.sign(dr); sc = 0;             len = adr; }
-  else if (adc > adr * 2.5) { sr = 0;             sc = Math.sign(dc); len = adc; }
-  else                       { sr = Math.sign(dr); sc = Math.sign(dc); len = Math.max(adr, adc); }
+// Línea recta exacta entre dos celdas en una de las 8 direcciones
+// (horizontal, vertical o diagonal perfecta |dr|=|dc|). Devuelve null
+// si el par no encaja en ninguna — así el highlight no rellena nada
+// raro cuando el arrastre va torcido.
+// Las colocaciones siguen siendo sólo → y ↓, así que una diagonal se
+// dibuja bonita pero la validación nunca la aceptará como acierto.
+function _wsLinePath(a, b) {
+  if (a.r === b.r && a.c === b.c) return [a];
+  const adr = Math.abs(b.r - a.r);
+  const adc = Math.abs(b.c - a.c);
+  if (a.r !== b.r && a.c !== b.c && adr !== adc) return null;
+  const dr = Math.sign(b.r - a.r);
+  const dc = Math.sign(b.c - a.c);
+  const len = Math.max(adr, adc);
   const path = [];
-  for (let i = 0; i <= len; i++) {
-    const r = a.r + sr * i;
-    const c = a.c + sc * i;
-    if (r < 0 || r >= nRows || c < 0 || c >= nCols) break;
-    path.push({ r, c });
-  }
+  for (let i = 0; i <= len; i++) path.push({ r: a.r + dr * i, c: a.c + dc * i });
   return path;
 }
 
 function _wsValidatePath(start, end, board, foundSet) {
-  const nRows = board.grid.length;
-  const nCols = board.grid[0].length;
-  const path = _wsSnapPath(start, end, nRows, nCols);
-  if (path.length < 2) return null;
-  // El path debe coincidir EXACTAMENTE con los extremos de una
-  // colocación (mismo arranque/final, o invertido). Antes comparaba
-  // sólo el string deletreado, lo que daba falsos positivos cuando
-  // el relleno aleatorio formaba por casualidad la palabra objetivo.
+  const path = _wsLinePath(start, end);
+  if (!path || path.length < 2) return null;
   const a = path[0];
   const b = path[path.length - 1];
   for (const p of board.placements) {
@@ -537,8 +532,8 @@ function WSLetterGrid({ board, found, onFound }) {
 
   const selCells = new Set();
   if (drag) {
-    const path = _wsSnapPath(drag.start, drag.end, nRows, nCols);
-    for (const { r, c } of path) selCells.add(`${r},${c}`);
+    const path = _wsLinePath(drag.start, drag.end);
+    if (path) for (const { r, c } of path) selCells.add(`${r},${c}`);
   }
 
   const cellFromPoint = (clientX, clientY) => {
@@ -569,23 +564,26 @@ function WSLetterGrid({ board, found, onFound }) {
 
   const onPointerUp = (e) => {
     if (!drag) return;
-    const cell = cellFromPoint(e.clientX, e.clientY) || drag.end;
+    const upCell = cellFromPoint(e.clientX, e.clientY) || drag.end;
     const down = downPosRef.current;
     const moved = down ? Math.hypot(e.clientX - down.x, e.clientY - down.y) : 0;
-    const isTap = moved < 12 && drag.start.r === cell.r && drag.start.c === cell.c;
+    const isTap = moved < 12 && drag.start.r === upCell.r && drag.start.c === upCell.c;
 
     if (isTap) {
+      // Tap mode estricto: las dos celdas deben estar exactamente
+      // alineadas con los extremos de una palabra (misma fila, columna
+      // o diagonal perfecta, y misma longitud).
       if (tapAnchor === null) {
-        setTapAnchor(cell);
-      } else if (tapAnchor.r === cell.r && tapAnchor.c === cell.c) {
+        setTapAnchor(upCell);
+      } else if (tapAnchor.r === upCell.r && tapAnchor.c === upCell.c) {
         setTapAnchor(null);
       } else {
-        const hit = _wsValidatePath(tapAnchor, cell, board, found);
+        const hit = _wsValidatePath(tapAnchor, upCell, board, found);
         if (hit) onFound(hit.word);
         setTapAnchor(null);
       }
     } else {
-      const hit = _wsValidatePath(drag.start, cell, board, found);
+      const hit = _wsValidatePath(drag.start, upCell, board, found);
       if (hit) onFound(hit.word);
       if (tapAnchor) setTapAnchor(null);
     }
