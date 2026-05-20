@@ -385,13 +385,17 @@ function ExamplePanel({ letter, showCase, onClose }) {
               // Comparación SIEMPRE en mayúsculas (la fuente lo está); el
               // texto que se RENDERIZA respeta el toggle del menú: muestra
               // la palabra en minúsculas si el usuario eligió "a b c".
-              const target = letter.upper;
+              // Normalizamos quitando tildes en ambos lados: así "A" casa
+              // con "Á" en ÁRBOL, "O" con "Ó" en LIMÓN, etc. — la tilde
+              // se pinta del color de acento porque pertenece a la letra.
+              const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+              const target = norm(letter.upper);
               const word = letter.word;
               const display = showCase === "lower" ? word.toLowerCase() : word;
               const out = [];
               let i = 0;
               while (i < word.length) {
-                const slice = word.slice(i, i + target.length).toUpperCase();
+                const slice = norm(word.slice(i, i + target.length));
                 const isTarget = slice === target;
                 if (isTarget) {
                   out.push(

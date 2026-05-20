@@ -20,7 +20,7 @@
   };
 
   const DATA = [
-    { upper: "A",  lower: "a",  word: "ABEJA"     },
+    { upper: "A",  lower: "a",  word: "AVIÓN"     },
     { upper: "B",  lower: "b",  word: "BARCO"     },
     { upper: "C",  lower: "c",  word: "CASA"      },
     { upper: "CH", lower: "ch", word: "CHOCOLATE", digraph: true, spell: "che" },

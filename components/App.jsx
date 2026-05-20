@@ -9,6 +9,7 @@ const HELP_HINTS = {
   memory:  "Voltea dos cartas y busca las que son iguales.",
   search:  "Mira los dibujos de arriba. Arrastra o toca dos celdas para encontrar la palabra.",
   guess:   "Forma la palabra con las sílabas. Pulsa la 🔍 si necesitas una pista.",
+  letters: "Mira el dibujo. Pulsa la letra que falta en la palabra.",
 };
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
       else if (id === "memory") setRoute("memory");
       else if (id === "search") setRoute("search");
       else if (id === "guess") setRoute("guess");
+      else if (id === "letters") setRoute("letters");
     }}/>;
   } else if (route === "builder") {
     screen = <WordBuilder onBack={() => setRoute("play")} debug={!!settings.debug}/>;
@@ -48,6 +50,8 @@ function App() {
     screen = <WordSearch onBack={() => setRoute("play")} debug={!!settings.debug} hideScary={!!settings.hideScary}/>;
   } else if (route === "guess") {
     screen = <GuessWord onBack={() => setRoute("play")} debug={!!settings.debug}/>;
+  } else if (route === "letters") {
+    screen = <LetterHunt onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   }
 
   const showChrome = route !== "settings";
