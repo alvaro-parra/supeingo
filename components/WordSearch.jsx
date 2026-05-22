@@ -724,9 +724,7 @@ function WordSearchSessionComplete({ words, onPlayAgain, onBack }) {
         padding: "var(--space-5) var(--space-5) var(--space-4)",
         position: "relative", zIndex: 2,
       }}>
-        <Trophy size={180}/>
         <div style={{
-          marginTop: "var(--space-4)",
           fontSize: "calc(26px * var(--scale))",
           fontWeight: 700,
           fontFamily: "Fredoka, sans-serif",
