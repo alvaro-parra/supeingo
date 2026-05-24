@@ -249,10 +249,10 @@ function WordWithGap({ entry, letter, status, onReplay }) {
   // Color del hueco según estado: verde en acierto, rojo en fallo,
   // gris discreto mientras se espera.
   const gapBg = status === "correct" ? "var(--ok-soft)"
-    : status === "wrong" ? "#FDE2E4"
+    : status === "wrong" ? "var(--ng-soft)"
     : "var(--bg-2)";
   const gapBorder = status === "correct" ? "var(--ok)"
-    : status === "wrong" ? "var(--accent-strong)"
+    : status === "wrong" ? "var(--ng)"
     : "var(--ink-faint)";
 
   const idle = status === "idle";
@@ -314,7 +314,7 @@ function WordWithGap({ entry, letter, status, onReplay }) {
           borderRadius: "var(--r-sm)",
           display: "inline-grid",
           placeItems: "center",
-          color: reveal ? "var(--accent-strong)" : "var(--ink-faint)",
+          color: reveal ? "var(--ink-highlight)" : "var(--ink-faint)",
           transition: "background 200ms ease, border-color 200ms ease, color 200ms ease",
         }}>{reveal ? middle : "·"}
         </span>
@@ -356,7 +356,7 @@ function AlphabetGrid({ alphabet, correctUpper, pickedUpper, status, onPick }) {
           if (reveal && isCorrect) {
             bg = "var(--ok-soft)"; border = "var(--ok)";
           } else if (reveal && isPicked && !isCorrect) {
-            bg = "var(--accent)"; border = "var(--accent-strong)";
+            bg = "var(--ng-soft)"; border = "var(--ng)";
           } else {
             bg = "var(--surface)"; border = "var(--ink)";
           }
@@ -509,7 +509,7 @@ function LetterHuntSessionComplete({ results, onPlayAgain, onBack }) {
                   flex: 1,
                 }}>
                   {head && <span>{head}</span>}
-                  <span style={{ color: "var(--accent-strong)" }}>{middle}</span>
+                  <span style={{ color: "var(--ink-highlight)" }}>{middle}</span>
                   {tail && <span>{tail}</span>}
                 </div>
                 <span aria-hidden style={{

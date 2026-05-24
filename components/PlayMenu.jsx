@@ -50,9 +50,9 @@ function PlayMenu({ onBack, onPick }) {
 }
 
 function GameCard({ name, subtitle, color, emoji, ready, onClick }) {
-  const bg = color === "accent" ? "var(--accent)"
+  const bg = color === "accent" ? "var(--primary)"
     : color === "secondary" ? "var(--secondary)"
-    : color === "warn" ? "var(--warn)"
+    : color === "warn" ? "var(--tertiary)"
     : "var(--ok)";
 
   return (

@@ -5,10 +5,11 @@
 // barajadas, y va recibiendo pistas progresivas a cada fallo.
 //
 // Cada fallo aporta dos ayudas en paralelo:
-//   1. Desbloquea la siguiente pista (categoría → color → más grande
-//      que → más pequeño que → primera sílaba auto-colocada → silueta
-//      difuminada). De los comparadores de tamaño se elige UNO al
-//      azar (por palabra), no se enseñan todos.
+//   1. Desbloquea la siguiente pista (categoría → color → rango de
+//      tamaño → primera sílaba auto-colocada → silueta difuminada).
+//      El rango de tamaño se muestra en una sola línea visual del
+//      tipo [ref pequeña] < [?] < [ref grande]; si falta uno de los
+//      dos comparadores se enseña solo el lado disponible.
 //   2. Elimina una sílaba distractora del banco, hasta que solo
 //      quedan las correctas. En ese punto el niño no puede fallar
 //      en cuanto a contenido, solo en orden — y sigue intentando
@@ -23,7 +24,7 @@
 
 const GW_SESSION_SIZE = 5;
 const GW_POOL_SIZE = 9;
-const GW_MAX_HINTS = 6;
+const GW_MAX_HINTS = 5;
 
 function _gwShuffle(arr) {
   const a = [...arr];
@@ -125,12 +126,11 @@ function GuessWord({ onBack, debug = false }) {
   // `applyHint`, mientras que esto es un conteo (3..6). Mezclarlos
   // hacía que se diera por agotada la cadena antes de llegar a la
   // silueta cuando faltaban comparadores. La cota correcta es
-  // `GW_MAX_HINTS` (los niveles 1, 5 y 6 siempre aplican).
+  // `GW_MAX_HINTS` (los niveles 1, 4 y 5 siempre aplican).
   const availableHints = useMemo(() => {
     let count = 3; // categoría + primera sílaba + silueta
     if (target.colors && target.colors.length > 0) count++;
-    if (sizeComparators.smaller)   count++;
-    if (sizeComparators.larger)    count++;
+    if (sizeComparators.smaller || sizeComparators.larger) count++;
     return count;
     // eslint-disable-next-line
   }, [target.word, sessionSeed]);
@@ -188,17 +188,17 @@ function GuessWord({ onBack, debug = false }) {
   // Niveles:
   //   1 = categoría
   //   2 = color
-  //   3 = más grande que <X>  (sizeSmaller)
-  //   4 = más pequeño que <Y> (sizeLarger)
-  //   5 = primera sílaba — se coloca automáticamente en el slot 0
+  //   3 = rango de tamaño — una sola card con
+  //       [ref más pequeña que el target] < [?] < [ref más grande],
+  //       saltando un lado si falta su comparador.
+  //   4 = primera sílaba — se coloca automáticamente en el slot 0
   //       (pero el niño puede quitarla si quiere; no está anclada)
-  //   6 = silueta difuminada
+  //   5 = silueta difuminada
   const applyHint = (level) => {
     if (level > GW_MAX_HINTS) return GW_MAX_HINTS;
     if (level === 2 && !(target.colors && target.colors.length > 0)) return applyHint(3);
-    if (level === 3 && !sizeComparators.smaller) return applyHint(4);
-    if (level === 4 && !sizeComparators.larger)  return applyHint(5);
-    if (level === 5) {
+    if (level === 3 && !sizeComparators.smaller && !sizeComparators.larger) return applyHint(4);
+    if (level === 4) {
       // Marcamos la primera sílaba correcta como "pinned": el slot 0
       // del AnswerArea la mostrará en verde y bloqueada. La colocación
       // efectiva en `placed` la hace el flujo del fallo (setTimeout)
@@ -307,10 +307,10 @@ function GuessWord({ onBack, debug = false }) {
           purgeOneDistractor();
         }
         // Limpieza de placed:
-        //  - Si la pista que acabamos de aplicar es la 5 (o la 5 ya
+        //  - Si la pista que acabamos de aplicar es la 4 (o la 4 ya
         //    estaba activa), conservar la sílaba pinned en el slot 0.
         //  - En cualquier otro caso, vaciar todo.
-        if (appliedLevel >= 5) {
+        if (appliedLevel >= 4) {
           // Releemos pinnedFirstId vía setter funcional para evitar
           // staleness: se resuelve al render siguiente con el valor real.
           setPlaced(() => {
@@ -343,10 +343,10 @@ function GuessWord({ onBack, debug = false }) {
     if (hintsUsed >= GW_MAX_HINTS) return;
     const appliedLevel = applyHint(hintsUsed + 1);
     setHintsUsed(appliedLevel);
-    // Si la pista aplicada es la 5 (primera sílaba), ésta debe quedar
+    // Si la pista aplicada es la 4 (primera sílaba), ésta debe quedar
     // plantada en el slot 0 manteniendo el resto de lo que el niño ya
     // hubiera colocado en otros slots.
-    if (appliedLevel >= 5) {
+    if (appliedLevel >= 4) {
       const firstSyl = target.syllables[0];
       const tile = initialBank.find(p =>
         p.correct && p.syllable === firstSyl && !removedIds.has(p.id)
@@ -521,7 +521,7 @@ function GuessWord({ onBack, debug = false }) {
 // ──────────────────────────────────────────────────────────────
 function AnswerWithSlots({ slotsTotal, placedSyllables, placedIds, pinnedFirstId, onRemove, status, isCorrect }) {
   const borderColor = isCorrect ? "var(--ok)"
-    : status === "wrong" ? "var(--accent-strong)"
+    : status === "wrong" ? "var(--ng)"
     : "var(--ink-faint)";
   const solid = isCorrect || status === "wrong";
   const bg = isCorrect ? "var(--ok-soft)" : "var(--surface)";
@@ -617,8 +617,8 @@ function AnswerWithSlots({ slotsTotal, placedSyllables, placedIds, pinnedFirstId
 function HintList({ target, hintsUsed, availableHints, comparators, onRequestHint, canRequestHint }) {
   // Construimos las pistas en el orden de desbloqueo, saltando las que
   // no aplican (sin color, sin sizeSmaller, sin sizeLarger).
-  // Niveles: 1=cat, 2=color, 3=más-grande-que, 4=más-pequeño-que,
-  // 5=primera-sílaba (texto informativo), 6=silueta (UI directa).
+  // Niveles: 1=cat, 2=color, 3=rango-de-tamaño (fusionado),
+  // 4=primera-sílaba (texto informativo), 5=silueta (UI directa).
   const cards = [];
   if (hintsUsed >= 1) {
     cards.push(<CategoryHint key="cat" entry={target}/>);
@@ -626,19 +626,19 @@ function HintList({ target, hintsUsed, availableHints, comparators, onRequestHin
   if (hintsUsed >= 2 && target.colors && target.colors.length > 0) {
     cards.push(<ColorHint key="color" entry={target}/>);
   }
-  if (hintsUsed >= 3 && comparators && comparators.smaller) {
-    cards.push(<SizeBiggerHint key="bigger" word={comparators.smaller}/>);
+  if (hintsUsed >= 3 && comparators && (comparators.smaller || comparators.larger)) {
+    cards.push(<SizeRangeHint
+      key="size"
+      smallerWord={comparators.smaller}
+      largerWord={comparators.larger}/>);
   }
-  if (hintsUsed >= 4 && comparators && comparators.larger) {
-    cards.push(<SizeSmallerHint key="smaller" word={comparators.larger}/>);
-  }
-  if (hintsUsed >= 5 && target.syllables && target.syllables.length > 0) {
-    // Card explicativa de la pista 5. La sílaba se autocoloca en el
+  if (hintsUsed >= 4 && target.syllables && target.syllables.length > 0) {
+    // Card explicativa de la pista 4. La sílaba se autocoloca en el
     // slot 0 del AnswerArea (en verde, bloqueada); la card aquí explica
     // de dónde salió y qué representa.
     cards.push(<FirstSyllableHint key="firstsyl" syllable={target.syllables[0]}/>);
   }
-  if (hintsUsed >= 6) {
+  if (hintsUsed >= 5) {
     cards.push(<SilhouetteHint key="silhouette" entry={target}/>);
   }
   // Invertimos para que la pista más reciente quede arriba — así no
@@ -757,30 +757,141 @@ function CategoryHint({ entry }) {
   );
 }
 
-// Pista "más grande que <X>" — un solo comparador, escogido al azar
-// en el componente padre (sizeComparators.smaller).
-function SizeBiggerHint({ word }) {
+// Pista "rango de tamaño" — fusión visual de las dos antiguas pistas
+// (más grande que / más pequeño que). Muestra en una sola línea:
+//   [ó pequeño]  ▸▸▸  [?]  ▸▸▸  [O grande]
+// con la palabra a adivinar como un placeholder "?" en el centro.
+// Si solo hay un comparador disponible, se renderiza únicamente ese
+// lado, manteniendo siempre la convención pequeño-izquierda /
+// grande-derecha.
+//
+// Convenciones visuales para que un niño pre-lector pueda interpretar
+// la pista sin necesidad de leer:
+//   1. Los frames son cuadrados con esquinas redondeadas y SIN TEXTO,
+//      solo la imagen. La palabra del referente queda como
+//      `aria-label`/`title` para lectores de pantalla y hover de adulto.
+//      Es el mismo look que la pista "Tiene esta forma".
+//   2. Los tres frames van escalados con golden ratio (φ ≈ 1.618):
+//      pequeño = BASE, medio (?) = BASE·φ, grande = BASE·φ².
+//      La proporción misma ES la pista.
+//   3. Entre los frames se intercala el símbolo matemático "<" como
+//      icono SVG (chevron) — mismo path que la flecha back del
+//      ScreenHeader, así se siente coherente con el resto del UI.
+function SizeRangeHint({ smallerWord, largerWord }) {
   const dict = window.SUPEINGO_CONTENT.dictionaryByWord || {};
-  const ref = dict[word];
-  if (!ref) return null;
+  const smaller = smallerWord ? dict[smallerWord] : null;
+  const larger  = largerWord  ? dict[largerWord]  : null;
+  if (!smaller && !larger) return null;
+
+  // Ratio = punto medio entre 1 (sin crecimiento) y φ (golden ratio
+  // completo). Da una progresión más suave que φ², ideal para que el
+  // grande no aplaste al mobile pero la diferencia siga siendo clara.
+  //   small = 45, mid = 45·r ≈ 59, large = 45·r² ≈ 77.
+  const PHI = 1.618;
+  const RATIO = (1 + PHI) / 2;                       // ≈ 1.309
+  const BASE = 45;
+  const SMALL_PX = BASE;
+  const MID_PX   = Math.round(BASE * RATIO);          // ~59
+  const LARGE_PX = Math.round(BASE * RATIO * RATIO);  // ~77
+  // Chevron izquierdo en la escala "pequeña" y derecho escalado por
+  // el mismo RATIO — refuerza la dirección de crecimiento de forma
+  // sutil.
+  const CHEVRON_L_PX = Math.round(SMALL_PX * 0.7);          // ~32
+  const CHEVRON_R_PX = Math.round(CHEVRON_L_PX * RATIO);    // ~41
+
+  const mystery = (
+    <span aria-hidden style={{
+      display: "inline-grid",
+      placeItems: "center",
+      width:  `calc(${MID_PX}px * var(--scale))`,
+      height: `calc(${MID_PX}px * var(--scale))`,
+      background: "var(--surface)",
+      border: "2px dashed var(--ink-faint)",
+      borderRadius: "var(--r-sm)",
+      fontSize: `calc(${Math.round(MID_PX * 0.55)}px * var(--scale))`,
+      fontWeight: 800,
+      color: "var(--ink-soft)",
+      fontFamily: "Fredoka, sans-serif",
+      lineHeight: 1,
+      flexShrink: 0,
+    }}>?</span>
+  );
+
   return (
-    <HintCard>
-      <span style={{ fontSize: "calc(17px * var(--scale))", fontWeight: 600 }}>Más grande que</span>
-      <ChipMini entry={ref}/>
+    <HintCard column>
+      <span style={{
+        fontSize: "calc(17px * var(--scale))",
+        fontWeight: 600,
+        flexShrink: 0,
+      }}>Tamaño</span>
+      <span style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "calc(8px * var(--scale))",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        width: "100%",
+      }}>
+        {smaller && <SizeFrame entry={smaller} sizePx={SMALL_PX}
+          label={`Más grande que ${smaller.word}`}/>}
+        {smaller && <LessThan sizePx={CHEVRON_L_PX}/>}
+        {mystery}
+        {larger && <LessThan sizePx={CHEVRON_R_PX}/>}
+        {larger && <SizeFrame entry={larger} sizePx={LARGE_PX}
+          label={`Más pequeño que ${larger.word}`}/>}
+      </span>
     </HintCard>
   );
 }
 
-// Pista "más pequeño que <Y>" — un solo comparador.
-function SizeSmallerHint({ word }) {
-  const dict = window.SUPEINGO_CONTENT.dictionaryByWord || {};
-  const ref = dict[word];
-  if (!ref) return null;
+// Frame cuadrado con esquinas redondeadas para los chips de la pista
+// de tamaño — mismo look que el recuadro de "Tiene esta forma"
+// (SilhouetteHint), así las dos pistas visuales del juego se sienten
+// parte de una misma familia. Solo imagen, sin texto. El nombre del
+// referente queda como `aria-label` y `title` (tooltip en hover para
+// adultos que están acompañando al niño).
+function SizeFrame({ entry, sizePx, label }) {
   return (
-    <HintCard>
-      <span style={{ fontSize: "calc(17px * var(--scale))", fontWeight: 600 }}>Más pequeño que</span>
-      <ChipMini entry={ref}/>
-    </HintCard>
+    <span
+      aria-label={label}
+      title={label}
+      role="img"
+      style={{
+        display: "inline-grid",
+        placeItems: "center",
+        width:  `calc(${sizePx}px * var(--scale))`,
+        height: `calc(${sizePx}px * var(--scale))`,
+        background: "var(--surface)",
+        border: "2px solid var(--ink-faint)",
+        borderRadius: "var(--r-sm)",
+        overflow: "hidden",
+        flexShrink: 0,
+      }}>
+      <WordImage entry={entry} size={Math.round(sizePx * 0.72)} scale={false}/>
+    </span>
+  );
+}
+
+// Icono "<" como SVG chevron. Reusa el mismo path y estilo de stroke
+// que la flecha back del ScreenHeader (components/shared.jsx),
+// manteniendo coherencia visual con el resto del UI. `sizePx` es el
+// alto del icono; el ancho sale proporcional al viewBox.
+function LessThan({ sizePx = 28 }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      width={`calc(${sizePx}px * var(--scale))`}
+      height={`calc(${sizePx}px * var(--scale))`}
+      style={{ flexShrink: 0, color: "var(--ink-soft)" }}>
+      <path
+        d="M 15 4 L 8 12 L 15 20"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"/>
+    </svg>
   );
 }
 
@@ -877,25 +988,6 @@ function HintCard({ children, column = false }) {
     }}>
       {children}
     </div>
-  );
-}
-
-function ChipMini({ entry }) {
-  return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      background: "var(--surface)",
-      border: "2px solid var(--ink)",
-      borderRadius: 999,
-      padding: "2px 10px 2px 6px",
-      fontSize: "calc(14px * var(--scale))",
-      fontWeight: 700,
-    }}>
-      <WordImage entry={entry} size={22} scale={false}/>
-      {entry.word}
-    </span>
   );
 }
 

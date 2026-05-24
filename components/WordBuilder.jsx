@@ -949,18 +949,18 @@ function Trophy({ size = 160 }) {
           fill="none" stroke="var(--ink)" strokeWidth="6" strokeLinecap="round"/>
         {/* copa */}
         <path d="M 45 35 L 155 35 L 150 110 Q 150 145 100 145 Q 50 145 50 110 Z"
-          fill="var(--warn)" stroke="var(--ink)" strokeWidth="6" strokeLinejoin="round"/>
+          fill="var(--tertiary)" stroke="var(--ink)" strokeWidth="6" strokeLinejoin="round"/>
         {/* brillo */}
         <path d="M 65 50 Q 65 90 80 110"
           fill="none" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" opacity="0.6"/>
         {/* estrella central */}
         <path d="M 100 65 L 107 80 L 122 82 L 111 92 L 114 107 L 100 100 L 86 107 L 89 92 L 78 82 L 93 80 Z"
-          fill="var(--accent-strong)" stroke="var(--ink)" strokeWidth="3" strokeLinejoin="round"/>
+          fill="var(--primary-strong)" stroke="var(--ink)" strokeWidth="3" strokeLinejoin="round"/>
         {/* tronco */}
-        <rect x="88" y="145" width="24" height="20" fill="var(--warn)" stroke="var(--ink)" strokeWidth="6"/>
+        <rect x="88" y="145" width="24" height="20" fill="var(--tertiary)" stroke="var(--ink)" strokeWidth="6"/>
         {/* base */}
         <path d="M 60 165 L 140 165 L 150 195 L 50 195 Z"
-          fill="var(--accent)" stroke="var(--ink)" strokeWidth="6" strokeLinejoin="round"/>
+          fill="var(--primary)" stroke="var(--ink)" strokeWidth="6" strokeLinejoin="round"/>
       </svg>
     </div>
   );
@@ -979,7 +979,7 @@ function Trophy({ size = 160 }) {
 function AnswerArea({ placedSyllables, onRemove, status, isCorrect }) {
   const empty = placedSyllables.length === 0;
   const borderColor = isCorrect ? "var(--ok)"
-    : status === "wrong" ? "var(--accent-strong)"
+    : status === "wrong" ? "var(--ng)"
     : "var(--ink-faint)";
   // Discontinuo en estado neutro (vacío o construyendo); solo se vuelve
   // continuo cuando hay feedback claro (correcto o error).
@@ -1090,7 +1090,7 @@ function Slot({ value, onClick, status, isCorrect }) {
     : filled ? "var(--surface)"
     : "transparent";
   const borderColor = isCorrect ? "var(--ok)"
-    : status === "wrong" && filled ? "var(--accent-strong)"
+    : status === "wrong" && filled ? "var(--ng)"
     : "var(--ink)";
   const borderStyle = filled ? "solid" : "dashed";
 
@@ -1126,7 +1126,7 @@ function SyllableTile({ syllable, placed, onClick, disabled }) {
         minWidth: 72,
         height: 64,
         padding: "0 var(--space-4)",
-        background: placed ? "var(--bg-2)" : "var(--accent)",
+        background: placed ? "var(--bg-2)" : "var(--primary)",
         border: `3px solid ${placed ? "var(--ink-soft)" : "var(--ink)"}`,
         borderRadius: "var(--r-md)",
         boxShadow: placed ? "inset 0 2px 4px rgba(0,0,0,0.08)" : "0 4px 0 var(--ink)",

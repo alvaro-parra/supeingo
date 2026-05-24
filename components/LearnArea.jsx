@@ -84,9 +84,9 @@ function LearnMenu({ onBack, onPick }) {
 // (circles) para que lea como elemento distinto, no como otra sílaba.
 function SyllablesIllustration() {
   const blocks = [
-    { x: 3,  y: 3,  syl: "MA", color: "var(--accent)" },
-    { x: 33, y: 3,  syl: "ME", color: "var(--warn)"   },
-    { x: 3,  y: 33, syl: "MI", color: "var(--warn)"   },
+    { x: 3,  y: 3,  syl: "MA", color: "var(--primary)" },
+    { x: 33, y: 3,  syl: "ME", color: "var(--tertiary)"   },
+    { x: 3,  y: 33, syl: "MI", color: "var(--tertiary)"   },
     { x: 33, y: 33, syl: null, color: "var(--bg-2)"   },
   ];
   return (
@@ -115,9 +115,9 @@ function SyllablesIllustration() {
 }
 
 function SectionCard({ name, subtitle, color, emoji, illustration, ready, onClick }) {
-  const bg = color === "accent" ? "var(--accent)"
+  const bg = color === "accent" ? "var(--primary)"
     : color === "secondary" ? "var(--secondary)"
-    : color === "warn" ? "var(--warn)"
+    : color === "warn" ? "var(--tertiary)"
     : "var(--ok)";
 
   return (
@@ -276,7 +276,7 @@ function CaseToggle({ value, onChange }) {
           style={{
             padding: "10px 18px",
             borderRadius: 999,
-            background: value === opt.id ? "var(--accent)" : "transparent",
+            background: value === opt.id ? "var(--primary)" : "transparent",
             color: "var(--ink)",
             fontWeight: 700,
             fontSize: "calc(15px * var(--scale))",
@@ -292,9 +292,9 @@ function CaseToggle({ value, onChange }) {
 
 function LetterTile({ letter, color, active, onClick }) {
   const colorMap = {
-    accent: { bg: "var(--accent)" },
+    accent: { bg: "var(--primary)" },
     secondary: { bg: "var(--secondary)" },
-    warn: { bg: "var(--warn)" },
+    warn: { bg: "var(--tertiary)" },
   };
   const c = colorMap[color];
   return (
@@ -399,7 +399,7 @@ function ExamplePanel({ letter, showCase, onClose }) {
                 const isTarget = slice === target;
                 if (isTarget) {
                   out.push(
-                    <span key={i} style={{ color: "var(--accent-strong)", fontWeight: 700 }}>
+                    <span key={i} style={{ color: "var(--ink-highlight)", fontWeight: 700 }}>
                       {display.slice(i, i + target.length)}
                     </span>
                   );
@@ -551,7 +551,7 @@ function SyllableExamplePanel({ syllable, example, spell, onClose }) {
             fontFamily: "Andika, Fredoka, sans-serif",
             letterSpacing: "0.05em",
           }}>
-            {head && <span style={{ color: "var(--accent-strong)", fontWeight: 700 }}>{head}</span>}
+            {head && <span style={{ color: "var(--ink-highlight)", fontWeight: 700 }}>{head}</span>}
             <span style={{ color: "var(--ink)", fontWeight: 500 }}>{tail}</span>
           </div>
         </div>
@@ -600,7 +600,7 @@ function SyllableFamily({ family, activeSyllable, onPick }) {
           <button key={s.syllable} onClick={() => onPick(s)}
             style={{
               aspectRatio: "1.1 / 1",
-              background: activeSyllable === s.syllable ? "var(--accent)" : "var(--bg-2)",
+              background: activeSyllable === s.syllable ? "var(--primary)" : "var(--bg-2)",
               border: "3px solid var(--ink)",
               borderRadius: "var(--r-sm)",
               boxShadow: activeSyllable === s.syllable ? "0 1px 0 var(--ink)" : "0 3px 0 var(--ink)",

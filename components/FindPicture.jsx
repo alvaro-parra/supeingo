@@ -292,10 +292,10 @@ function FindPicture({ onBack, debug = false }) {
           const isWrongPick = isPicked && status === "wrong";
           // Borde según feedback
           const borderColor = isCorrect ? "var(--ok)"
-            : isWrongPick ? "var(--accent-strong)"
+            : isWrongPick ? "var(--ng)"
             : "var(--ink)";
           const bg = isCorrect ? "var(--ok-soft)"
-            : isWrongPick ? "var(--accent)"
+            : isWrongPick ? "var(--ng-soft)"
             : "var(--surface)";
           return (
             <button

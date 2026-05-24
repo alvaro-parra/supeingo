@@ -663,12 +663,12 @@ function Cell({ rc, ch, isFound, isSel, isAnchor }) {
   }
   if (isSel || isAnchor) {
     transform = "scale(1.06)";
-    boxShadow = "0 0 0 3px var(--accent-strong)";
+    boxShadow = "0 0 0 3px var(--primary-strong)";
     zIndex = 1;
     if (!isFound) {
-      bg = "var(--accent)";
+      bg = "var(--primary)";
       color = "#fff";
-      border = "1.5px solid var(--accent-strong)";
+      border = "1.5px solid var(--primary-strong)";
     }
     if (isAnchor) {
       animation = "ws-pulse 0.9s ease-in-out infinite";

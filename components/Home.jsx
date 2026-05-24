@@ -28,7 +28,7 @@ function Home({ onNav, helperOn, onSettings }) {
             fontSize: "calc(34px * var(--scale))",
             fontWeight: 700,
             lineHeight: 1.05,
-          }}>Vamos a aprender <span style={{ color: "var(--accent-strong)" }}>español</span></h1>
+          }}>Vamos a aprender <span style={{ color: "var(--primary-strong)" }}>español</span></h1>
         </div>
         <button
           onClick={onSettings}
@@ -141,7 +141,7 @@ function SpeechBubble({ children }) {
 }
 
 function HomeCard({ title, subtitle, color, illustration, onClick }) {
-  const bg = color === "accent" ? "var(--accent)" : "var(--secondary)";
+  const bg = color === "accent" ? "var(--primary)" : "var(--secondary)";
   return (
     <button onClick={onClick} style={{
       background: bg,
@@ -206,7 +206,7 @@ function LearnIllustration() {
       <text x="14" y="34" className="letter-face"
             style={{ fontSize: 30, fontWeight: 700, fill: "var(--secondary-strong)", fontFamily: "Andika, Fredoka, sans-serif" }}>A</text>
       <text x="34" y="48" className="letter-face"
-            style={{ fontSize: 26, fontWeight: 700, fill: "var(--accent-strong)", fontFamily: "Andika, Fredoka, sans-serif" }}>a</text>
+            style={{ fontSize: 26, fontWeight: 700, fill: "var(--primary-strong)", fontFamily: "Andika, Fredoka, sans-serif" }}>a</text>
     </svg>
   );
 }
@@ -215,10 +215,10 @@ function LearnIllustration() {
 function PlayIllustration() {
   return (
     <svg viewBox="0 0 60 60" width="64" height="64">
-      <rect x="6" y="20" width="22" height="22" rx="5" fill="var(--accent)" stroke="var(--ink)" strokeWidth="2"/>
+      <rect x="6" y="20" width="22" height="22" rx="5" fill="var(--primary)" stroke="var(--ink)" strokeWidth="2"/>
       <text x="17" y="36" textAnchor="middle"
             style={{ fontSize: 12, fontWeight: 700, fill: "var(--ink)", fontFamily: "Fredoka, sans-serif" }}>GA</text>
-      <rect x="32" y="20" width="22" height="22" rx="5" fill="var(--warn)" stroke="var(--ink)" strokeWidth="2"/>
+      <rect x="32" y="20" width="22" height="22" rx="5" fill="var(--tertiary)" stroke="var(--ink)" strokeWidth="2"/>
       <text x="43" y="36" textAnchor="middle"
             style={{ fontSize: 12, fontWeight: 700, fill: "var(--ink)", fontFamily: "Fredoka, sans-serif" }}>TO</text>
     </svg>

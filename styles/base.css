@@ -11,20 +11,36 @@
   --ink:       #2A2A33;       /* casi negro, cálido */
   --ink-soft:  #6B6B78;
   --ink-faint: #A8A8B3;
+  /* ink-highlight — resaltado de un fragmento de texto (p.ej. la
+     letra objetivo dentro de una palabra ejemplo en El abecedario,
+     o la letra que falta en LetterHunt). Semánticamente distinto del
+     primary-strong (que es texto de marca). */
+  --ink-highlight: #E76F51;
 
-  /* Acentos — bajo croma, alto contraste para daltonismo
-     azul (~225º) y naranja (~50º) son distinguibles
-     en deuteranopía y protanopía */
-  --accent:        #F4978E;   /* coral suave */
-  --accent-strong: #E76F51;   /* coral fuerte */
-  --secondary:     #8E9AAF;   /* azul-gris */
-  --secondary-strong: #5A6F8C;
+  /* Primary — marca principal: card "Jugar", sílabas activas,
+     fills de ilustraciones. */
+  --primary:        #F4978E;   /* coral suave */
+  --primary-strong: #E76F51;   /* coral fuerte — texto de marca "español" */
 
-  /* Estados — siempre acompañados de un icono/forma */
+  /* Secondary — marca secundaria: card "Aprender", botones CTA. */
+  --secondary:        #8E9AAF;   /* azul-gris */
+  --secondary-strong: #5A6F8C;   /* fondo del botón primario (Comprobar) */
+
+  /* Tertiary — 3er acento para ilustraciones (TO en Jugar,
+     ME-MI en Sílabas, cada 3ª letra del abecedario). Tertiary-soft
+     es el fondo suave compañero (info messages en Settings, etc). */
+  --tertiary:        #F4D060;
+  --tertiary-soft:   #FBEFC4;
+
+  /* Estados positivos — acierto. */
   --ok:        #6FB58A;       /* verde apagado */
   --ok-soft:   #DDF0E4;
-  --warn:      #F4A261;       /* mostaza/melocotón */
-  --warn-soft: #FBE5CB;
+
+  /* Estados negativos — errores y respuestas incorrectas. Tono
+     cálido/naranja en lugar del rojo estándar, para mantener el
+     feedback amable en una app infantil. */
+  --ng:        #F4A261;
+  --ng-soft:   #FBE5CB;
 
   /* Tokens de superficie */
   --r-sm: 12px;
@@ -51,26 +67,74 @@
   --tap: calc(56px * var(--scale)); /* tamaño mínimo táctil */
 }
 
-/* Paleta alternativa — alto contraste / daltonismo extremo */
-[data-palette="hi-contrast"] {
-  --bg:        #FFFDF7;
-  --bg-2:      #FFF3D6;
-  --accent:    #E76F51;
-  --accent-strong: #BC4F33;
-  --secondary: #2A6F97;
-  --secondary-strong: #1B4F73;
-  --ok:        #2A9D8F;
-  --warn:      #E9C46A;
+/* ──────────────────────────────────────────────────────────────
+   Paletas experimentales — exploración A/B con familias/niños.
+   Cada una redefine TODOS los tokens cromáticos para que el cambio
+   sea total (no parche sobre :root). Nombres evocativos en vez de
+   descriptivos para no sesgar la decisión.
+   ────────────────────────────────────────────────────────────── */
+
+/* Mar — fríos suaves, azul-agua + verde mar. */
+[data-palette="mar"] {
+  --bg:        #EEF6F8;
+  --bg-2:      #D6E8EE;
+  --surface:   #FFFFFF;
+  --ink:       #1F2A33;
+  --ink-soft:  #56697A;
+  --ink-faint: #9CB0BC;
+  --primary:        #7FB6CC;
+  --primary-strong: #2D7F9D;
+  --secondary:        #8FB59B;
+  --secondary-strong: #4A7A5A;
+  --tertiary:        #E5B57A;
+  --tertiary-soft:   #F6E2C2;
+  --ink-highlight: #2D7F9D;
+  --ok:        #6FB58A;
+  --ok-soft:   #DDF0E4;
+  --ng:        #E8A95C;
+  --ng-soft:   #F6E2C2;
 }
 
-/* Modo "tritanopía-friendly" — evita azul-amarillo */
-[data-palette="tritan"] {
-  --accent:    #D88C75;
-  --accent-strong: #B05A41;
-  --secondary: #9A6FB0;
-  --secondary-strong: #6E4A82;
-  --ok:        #5C9A7D;
-  --warn:      #C97C5D;
+/* Cuaderno — blanco papel, tinta marcada, ámbar+azul como rotulador. */
+[data-palette="cuaderno"] {
+  --bg:        #FAFAF7;
+  --bg-2:      #EEEEE7;
+  --surface:   #FFFFFF;
+  --ink:       #1A1A1A;
+  --ink-soft:  #555555;
+  --ink-faint: #B5B5B5;
+  --primary:        #FFB84D;
+  --primary-strong: #E08A18;
+  --secondary:        #4A90D9;
+  --secondary-strong: #2C5F9A;
+  --tertiary:        #9B5BB0;
+  --tertiary-soft:   #E8DCF1;
+  --ink-highlight: #E08A18;
+  --ok:        #4FAA72;
+  --ok-soft:   #D8EEDF;
+  --ng:        #E8A93C;
+  --ng-soft:   #FCE9C2;
+}
+
+/* Cobre — cálidos terrosos, melocotón + tabaco. */
+[data-palette="cobre"] {
+  --bg:        #F9F1E7;
+  --bg-2:      #F0DEC4;
+  --surface:   #FFF8F0;
+  --ink:       #2E2118;
+  --ink-soft:  #6E5A48;
+  --ink-faint: #B0A088;
+  --primary:        #E29577;
+  --primary-strong: #B85E3C;
+  --secondary:        #A07A56;
+  --secondary-strong: #6E4F33;
+  --tertiary:        #94A06A;
+  --tertiary-soft:   #DEE5C6;
+  --ink-highlight: #B85E3C;
+  --ok:        #8AAE72;
+  --ok-soft:   #E0EBD3;
+  --ng:        #D89254;
+  --ng-soft:   #F4DDBA;
 }
 
 * { box-sizing: border-box; }
@@ -148,7 +212,7 @@ button:focus-visible {
 }
 .bg-decor::after {
   width: 220px; height: 220px;
-  background: var(--accent);
+  background: var(--primary);
   opacity: 0.15;
   bottom: -60px; left: -60px;
 }

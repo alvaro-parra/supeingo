@@ -188,7 +188,7 @@ function Memory({ onBack, debug = false }) {
                     ? "var(--ok-soft)"
                     : open
                       ? "var(--surface)"
-                      : "var(--accent)",
+                      : "var(--primary)",
                   border: `3px solid ${matched ? "var(--ok)" : "var(--ink)"}`,
                   borderRadius: "var(--r-md)",
                   // Solo la carta abierta (volteada o emparejada) se hunde;

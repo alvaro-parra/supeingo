@@ -331,16 +331,16 @@ function Helper({ size = 96, mood = "happy", style = {} }) {
         {/* gorra de béisbol */}
         {/* visera saliendo hacia la derecha */}
         <path d="M 50 30 Q 78 28 82 36 Q 80 38 70 36 Q 58 33 50 33 Z"
-          fill="var(--accent-strong)" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round"/>
+          fill="var(--primary-strong)" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round"/>
         {/* copa de la gorra (cubre coronilla y flequillo superior) */}
         <path d="M 28 32 Q 28 16 50 16 Q 72 16 72 32 Q 72 35 70 35 L 30 35 Q 28 35 28 32 Z"
-          fill="var(--accent)" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round"/>
+          fill="var(--primary)" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round"/>
         {/* costuras de la gorra (detalle) */}
         <path d="M 50 16 L 50 35" stroke="var(--ink)" strokeWidth="1.2" opacity="0.4" fill="none"/>
         <path d="M 35 17 Q 40 28 38 35" stroke="var(--ink)" strokeWidth="1.2" opacity="0.3" fill="none"/>
         <path d="M 65 17 Q 60 28 62 35" stroke="var(--ink)" strokeWidth="1.2" opacity="0.3" fill="none"/>
         {/* botón superior */}
-        <circle cx="50" cy="16" r="2.2" fill="var(--accent-strong)" stroke="var(--ink)" strokeWidth="1.2"/>
+        <circle cx="50" cy="16" r="2.2" fill="var(--primary-strong)" stroke="var(--ink)" strokeWidth="1.2"/>
       </svg>
     </div>
   );
@@ -402,7 +402,7 @@ function HelpButton({ hint }) {
         style={{
           position: "fixed", right: 14, bottom: 14, zIndex: 60,
           width: 64, height: 64, borderRadius: "50%",
-          background: "var(--warn)",
+          background: "var(--tertiary)",
           border: "3px solid var(--ink)",
           boxShadow: "0 5px 0 var(--ink)",
           display: "grid", placeItems: "center",
@@ -494,7 +494,7 @@ const SpeakButton = React.forwardRef(function SpeakButton(
         <span style={{
           position: "absolute", inset: -4,
           borderRadius: "50%",
-          border: "3px solid var(--accent)",
+          border: "3px solid var(--primary)",
           // `forwards` mantiene el estado final del keyframe (opacity:0,
           // scale 2.4) hasta que el span desaparece al apagarse `playing`.
           // Sin esto, tras los 800ms de animación el span volvía un instante
@@ -519,8 +519,8 @@ function Star({ filled = false, size = 32, delay = 0 }) {
            transform: filled ? "scale(1)" : "scale(0.85)",
          }}>
       <path d="M 12 2 L 14.5 8.5 L 21.5 9 L 16 13.5 L 18 20.5 L 12 16.5 L 6 20.5 L 8 13.5 L 2.5 9 L 9.5 8.5 Z"
-            fill={filled ? "var(--warn)" : "transparent"}
-            stroke={filled ? "var(--warn)" : "var(--ink-faint)"}
+            fill={filled ? "var(--tertiary)" : "transparent"}
+            stroke={filled ? "var(--tertiary)" : "var(--ink-faint)"}
             strokeWidth="1.5"
             strokeLinejoin="round"/>
     </svg>
@@ -538,7 +538,7 @@ function Confetti({ active }) {
       position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 50
     }}>
       {pieces.map((_, i) => {
-        const colors = ["var(--accent)", "var(--warn)", "var(--ok)", "var(--secondary)"];
+        const colors = ["var(--primary)", "var(--tertiary)", "var(--ok)", "var(--secondary)"];
         const x = (i / pieces.length) * 100 + (Math.random() - 0.5) * 8;
         const delay = Math.random() * 200;
         const dur = 700 + Math.random() * 400;
@@ -563,11 +563,11 @@ function Confetti({ active }) {
 // Botón grande primario — estilo "ficha de cartón"
 // ------------------------------------------------------------
 function BigButton({ children, onClick, color = "accent", icon = null, style = {}, disabled = false }) {
-  const colorVar = color === "accent" ? "var(--accent)"
+  const colorVar = color === "accent" ? "var(--primary)"
     : color === "secondary" ? "var(--secondary)"
     : color === "ok" ? "var(--ok)"
     : color;
-  const colorStrong = color === "accent" ? "var(--accent-strong)"
+  const colorStrong = color === "accent" ? "var(--primary-strong)"
     : color === "secondary" ? "var(--secondary-strong)"
     : "var(--ok)";
 
