@@ -62,7 +62,10 @@ function TeacherTools({ onBack, settings }) {
   const [dirIds, setDirIds] = useState(["E", "S"]);
   const [hideScary, setHideScary] = useState(!!(settings && settings.hideScary));
   const [includeSolution, setIncludeSolution] = useState(true);
-  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
+  // `board` ya no se recalcula con cada slider — solo al pulsar "Generar".
+  // Así la profe puede tocar opciones sin que la preview parpadee a cada
+  // cambio (y los Sliders no disparan generación pesada).
+  const [board, setBoard] = useState(null);
   const [jspdfReady, setJspdfReady] = useState(!!(window.jspdf && window.jspdf.jsPDF));
   const [jspdfError, setJspdfError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -77,81 +80,96 @@ function TeacherTools({ onBack, settings }) {
   }, []);
 
   // ─── Parsear palabras custom ──────────────────────────────
-  const customEntries = useMemo(() => {
-    const lines = customWords.split(/\r?\n/).map((s) => s.trim().toUpperCase()).filter(Boolean);
-    return lines
-      .filter((w) => /^[A-ZÑÁÉÍÓÚ]+$/.test(w) && w.length >= 3 && w.length <= cols)
-      .map((w) => ({ word: w, syllables: [w], categories: [] }));
-  }, [customWords, cols]);
-
-  const invalidCustom = useMemo(() => {
+  // Las clasificamos en válidas, formato roto y demasiado largas para
+  // poder mostrar mensajes específicos en lugar de un genérico
+  // "ignoradas". El límite usa min(rows, cols) — contrato estricto:
+  // la palabra cabe en CUALQUIER dirección (horizontal, vertical o
+  // diagonal). Así la validación es independiente del set de
+  // direcciones que elija la profe; lo que pasa la validación cabrá
+  // siempre, sin "Sin sitio" sorpresa tras Generar.
+  const parsedCustom = useMemo(() => {
+    const maxLen = Math.min(rows, cols);
     const lines = customWords.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-    return lines.filter((w) => {
-      const u = w.toUpperCase();
-      return !/^[A-ZÑÁÉÍÓÚ]+$/.test(u) || u.length < 3 || u.length > cols;
-    });
-  }, [customWords, cols]);
+    const valid = [];
+    const badFormat = [];
+    const tooLong = [];
+    for (const raw of lines) {
+      const u = raw.toUpperCase();
+      if (!/^[A-ZÑÁÉÍÓÚ]+$/.test(u) || u.length < 3) {
+        badFormat.push(raw);
+      } else if (u.length > maxLen) {
+        tooLong.push(u);
+      } else {
+        valid.push({ word: u, syllables: [u], categories: [] });
+      }
+    }
+    return { valid, badFormat, tooLong, maxLen };
+  }, [customWords, rows, cols]);
 
-  // ─── Pool de candidatos ──────────────────────────────────
-  const candidates = useMemo(() => {
-    const fromDict = window.SUPEINGO_WS.pickWords(dictionary, {
-      seed,
-      categories: categories.length > 0 ? categories : null,
-      hideScary,
-      minLen: 3,
-      maxLen: Math.max(rows, cols),
-      poolSize: 80,
-      requireImage: false,
-      allowAccents: true,
-    });
-    // Custom primero — la profe los escribió a propósito.
-    const all = customEntries.concat(fromDict);
-    // Dedup por palabra.
-    const seen = new Set();
-    return all.filter((e) => {
-      if (seen.has(e.word)) return false;
-      seen.add(e.word);
-      return true;
-    });
-  }, [dictionary, categories, hideScary, seed, customEntries, rows, cols]);
+  const customEntries = parsedCustom.valid;
 
   const dirs = useMemo(
     () => TT_DIRS_UI.filter((d) => dirIds.includes(d.id)).map((d) => d.vec),
     [dirIds]
   );
 
-  // ─── Generar tablero ───────────────────────────────────
-  const board = useMemo(() => {
-    if (dirs.length === 0) return null;
-    if (candidates.length === 0) return null;
+  // ─── Generar tablero (manual, al pulsar el botón) ─────────
+  // Computa los candidatos fresh dentro del handler para evitar el
+  // closure stale entre setSeed → useMemo → generate. Las palabras
+  // propias son OBLIGATORIAS (priorizadas) y el dict solo rellena el
+  // cupo restante. Si no hay categoría seleccionada Y no hay custom,
+  // no se genera (fail loud).
+  const generate = () => {
+    if (dirs.length === 0) {
+      setBoard({ error: "Marca al menos una dirección." });
+      return;
+    }
+    const newSeed = Math.floor(Math.random() * 1e9);
+    const customForPool = customEntries.slice(0, count);
+    const remaining = Math.max(0, count - customForPool.length);
+    let freshCandidates;
+    if (remaining === 0 || categories.length === 0) {
+      freshCandidates = customForPool;
+    } else {
+      const customSet = new Set(customForPool.map((e) => e.word));
+      const fromDict = window.SUPEINGO_WS.pickWords(dictionary, {
+        seed: newSeed,
+        categories,
+        hideScary,
+        minLen: 3,
+        maxLen: Math.max(rows, cols),
+        poolSize: Math.max(remaining * 4, 20),
+        requireImage: false,
+        allowAccents: true,
+      }).filter((e) => !customSet.has(e.word)).slice(0, remaining);
+      freshCandidates = customForPool.concat(fromDict);
+    }
+    if (freshCandidates.length === 0) {
+      setBoard({ error: "No hay palabras. Elige una categoría o escribe palabras propias." });
+      return;
+    }
     try {
-      // Reintentamos hasta 2 veces si vienen warnings — es muy raro
-      // pero garantizamos UX sin avisos espurios.
       let last = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         last = window.SUPEINGO_WS.generateBoard({
-          rows, cols, candidates, count, dirs, seed: seed + attempt * 31,
+          rows, cols, candidates: freshCandidates, count, dirs,
+          seed: newSeed + attempt * 31,
         });
         if (last.warnings.length === 0) break;
       }
-      return last;
+      setBoard(last);
     } catch (err) {
-      return { error: err.message };
+      setBoard({ error: err.message });
     }
-  }, [rows, cols, candidates, count, dirs, seed]);
-
-  // ─── Acciones ──────────────────────────────────────────
-  const regenerate = () => setSeed(Math.floor(Math.random() * 1e9));
+  };
 
   const downloadPdf = async () => {
     if (!board || board.error) return;
     setBusy(true);
     try {
       const jsPDF = await loadJsPDF();
-      const subtitle = customEntries.length > 0 ? "personalizada" : (categories[0] || "");
       const spec = window.SUPEINGO_PDF_SPEC.buildPdfSpec(board, {
         title: "Sopa de letras",
-        subtitle,
         includeSolution,
         now: new Date(),
       });
@@ -178,9 +196,8 @@ function TeacherTools({ onBack, settings }) {
     setBusy(true);
     try {
       const jsPDF = await loadJsPDF();
-      const subtitle = customEntries.length > 0 ? "personalizada" : (categories[0] || "");
       const spec = window.SUPEINGO_PDF_SPEC.buildPdfSpec(board, {
-        title: "Sopa de letras", subtitle, includeSolution, now: new Date(),
+        title: "Sopa de letras", includeSolution, now: new Date(),
       });
       const doc = window.SUPEINGO_PDF_RENDER.renderPdf(spec, jsPDF);
       const blob = doc.output("blob");
@@ -199,12 +216,19 @@ function TeacherTools({ onBack, settings }) {
   };
 
   // ─── Validaciones ──────────────────────────────────────
-  const totalLetters = candidates.slice(0, count).reduce((acc, e) => acc + e.word.length, 0);
-  const gridCapacityWarn = totalLetters > rows * cols
-    ? "Cabe muy justo o no cabe. Sube las dimensiones o baja el nº de palabras."
+  // Estimación grosera: promedio 5 letras/palabra. Si la suma estimada
+  // supera el 60% de las celdas, la generación va apretada. Solo es
+  // una advertencia preventiva — el generador hará lo que pueda.
+  const avgLen = customEntries.length > 0
+    ? customEntries.reduce((a, e) => a + e.word.length, 0) / customEntries.length
+    : 5;
+  const gridCapacityWarn = (count * avgLen) > rows * cols * 0.6
+    ? "Puede quedarse apretado. Sube las dimensiones o baja el nº de palabras."
     : null;
   const dirsEmpty = dirs.length === 0;
   const placedCount = board && !board.error ? board.words.length : 0;
+  const canGenerate = !busy && !dirsEmpty
+    && (categories.length > 0 || customEntries.length > 0);
   const canDownload = jspdfReady && !busy && board && !board.error
     && placedCount > 0 && !dirsEmpty;
 
@@ -253,9 +277,14 @@ function TeacherTools({ onBack, settings }) {
               color: "var(--ink)",
             }}
           />
-          {invalidCustom.length > 0 && (
+          {parsedCustom.badFormat.length > 0 && (
             <div style={{ color: "var(--ng)", fontSize: 12, marginTop: 4 }}>
-              Ignoradas (formato no válido): {invalidCustom.join(", ")}
+              Formato no válido (solo letras, mínimo 3): {parsedCustom.badFormat.join(", ")}
+            </div>
+          )}
+          {parsedCustom.tooLong.length > 0 && (
+            <div style={{ color: "var(--ng)", fontSize: 12, marginTop: 4 }}>
+              Demasiado largas para un tablero {rows}×{cols} (máx {parsedCustom.maxLen} letras): {parsedCustom.tooLong.join(", ")}
             </div>
           )}
         </Field>
@@ -273,20 +302,14 @@ function TeacherTools({ onBack, settings }) {
       </Section>
 
       <Section title="Tamaño" icon={<span style={{ fontSize: 22 }}>📐</span>}>
-        <Field label={`Filas: ${rows}`}>
-          <input type="range" min={7} max={20} value={rows}
-                 onChange={(e) => setRows(parseInt(e.target.value, 10))}
-                 style={{ width: "100%" }}/>
+        <Field label="Filas">
+          <Stepper value={rows} min={7} max={20} onChange={setRows}/>
         </Field>
-        <Field label={`Columnas: ${cols}`}>
-          <input type="range" min={7} max={20} value={cols}
-                 onChange={(e) => setCols(parseInt(e.target.value, 10))}
-                 style={{ width: "100%" }}/>
+        <Field label="Columnas">
+          <Stepper value={cols} min={7} max={20} onChange={setCols}/>
         </Field>
-        <Field label={`Número de palabras: ${count}`}>
-          <input type="range" min={4} max={20} value={count}
-                 onChange={(e) => setCount(parseInt(e.target.value, 10))}
-                 style={{ width: "100%" }}/>
+        <Field label="Número de palabras">
+          <Stepper value={count} min={4} max={20} onChange={setCount}/>
         </Field>
         {gridCapacityWarn && (
           <div style={{ color: "var(--ng)", fontWeight: 700, fontSize: 13 }}>
@@ -349,7 +372,7 @@ function TeacherTools({ onBack, settings }) {
       <Section title="Vista previa" icon={<span style={{ fontSize: 22 }}>👁</span>}>
         {!board && (
           <div style={{ color: "var(--ink-soft)" }}>
-            Configura el contenido para ver la sopa.
+            Pulsa <strong>Generar</strong> para crear la sopa con la configuración de arriba.
           </div>
         )}
         {board && board.error && (
@@ -399,12 +422,24 @@ function TeacherTools({ onBack, settings }) {
         position: "relative", zIndex: 2,
       }}>
         <button
+          onClick={generate}
+          disabled={!canGenerate}
+          title={dirsEmpty
+            ? "Marca al menos una dirección"
+            : (categories.length === 0 && customEntries.length === 0
+                ? "Elige una categoría o escribe palabras propias"
+                : "")}
+          style={primaryBtnStyle(canGenerate)}
+        >
+          {board ? "Generar otra" : "Generar"}
+        </button>
+        <button
           onClick={downloadPdf}
           disabled={!canDownload}
-          title={!jspdfReady ? "Cargando jsPDF…" : (dirsEmpty ? "Elige al menos una dirección" : "")}
-          style={primaryBtnStyle(canDownload)}
+          title={!jspdfReady ? "Cargando jsPDF…" : ""}
+          style={secondaryBtnStyle(canDownload)}
         >
-          {busy ? "Generando…" : "Descargar PDF"}
+          {busy ? "Generando PDF…" : "Descargar PDF"}
         </button>
         {canShareFiles && (
           <button
@@ -413,16 +448,114 @@ function TeacherTools({ onBack, settings }) {
             style={secondaryBtnStyle(canDownload)}
           >Compartir</button>
         )}
-        <button
-          onClick={regenerate}
-          style={secondaryBtnStyle(true)}
-        >Regenerar</button>
       </div>
       {jspdfError && (
         <div style={{ color: "var(--ng)", textAlign: "center", marginTop: 10 }}>
           jsPDF no se pudo cargar: {jspdfError}
         </div>
       )}
+    </div>
+  );
+}
+
+// Stepper táctil — alternativa a `<input type=range>` para móvil.
+// Los slider nativos en móvil cambian de valor al hacer scroll si el dedo
+// roza el track, lo que es frustrante. Con botones grandes el cambio es
+// siempre explícito.
+//
+// Soporta hold-to-repeat: tap = 1 paso; mantener pulsado = repite tras
+// 380 ms de delay con un tick cada 80 ms. Útil para rangos largos sin
+// machacar el botón.
+function Stepper({ value, min, max, step = 1, onChange }) {
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const minRef = useRef(min); minRef.current = min;
+  const maxRef = useRef(max); maxRef.current = max;
+  const timeoutRef = useRef(null);
+  const intervalRef = useRef(null);
+
+  const stepBy = (delta) => {
+    const next = Math.min(maxRef.current, Math.max(minRef.current, valueRef.current + delta));
+    if (next !== valueRef.current) {
+      // Actualizamos valueRef inmediatamente: el setState del padre es
+      // asíncrono y el siguiente tick del interval necesita el valor
+      // ya incrementado para no quedarse pegado.
+      valueRef.current = next;
+      onChange(next);
+    }
+  };
+
+  const stopRepeat = () => {
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+  };
+
+  const startRepeat = (delta) => {
+    stepBy(delta);
+    stopRepeat();
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => stepBy(delta), 80);
+    }, 380);
+  };
+
+  useEffect(() => stopRepeat, []);
+
+  const btn = (enabled) => ({
+    width: 44, height: 44,
+    background: enabled ? "var(--surface)" : "var(--bg-2)",
+    border: "2.5px solid var(--ink)",
+    borderRadius: "var(--r-sm)",
+    boxShadow: enabled ? "0 2px 0 var(--ink)" : "none",
+    fontSize: 22,
+    fontWeight: 800,
+    fontFamily: "Fredoka, sans-serif",
+    cursor: enabled ? "pointer" : "not-allowed",
+    color: "var(--ink)",
+    lineHeight: 1,
+    touchAction: "manipulation",
+    userSelect: "none",
+    opacity: enabled ? 1 : 0.4,
+  });
+
+  const repeatHandlers = (delta) => ({
+    onPointerDown: (e) => {
+      // preventDefault evita el doble-fire de click + el menú contextual
+      // en long-press móvil. Capturamos para recibir pointerup aunque
+      // el dedo se salga del botón.
+      e.preventDefault();
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+      startRepeat(delta);
+    },
+    onPointerUp: stopRepeat,
+    onPointerLeave: stopRepeat,
+    onPointerCancel: stopRepeat,
+    onContextMenu: (e) => e.preventDefault(),
+  });
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      justifyContent: "flex-start",
+    }}>
+      <button type="button" aria-label="Disminuir"
+              disabled={value <= min}
+              style={btn(value > min)}
+              {...repeatHandlers(-step)}>−</button>
+      <div style={{
+        minWidth: 44, textAlign: "center",
+        fontSize: 22, fontWeight: 700,
+        fontFamily: "Andika, Fredoka, sans-serif",
+        color: "var(--ink)",
+      }}>{value}</div>
+      <button type="button" aria-label="Aumentar"
+              disabled={value >= max}
+              style={btn(value < max)}
+              {...repeatHandlers(step)}>+</button>
+      <div style={{
+        fontSize: 12,
+        color: "var(--ink-faint)",
+        marginLeft: 4,
+      }}>({min}–{max})</div>
     </div>
   );
 }

@@ -21,7 +21,7 @@ function makeBoard(opts) {
 
 test("spec con soluciones tiene 2 páginas", () => {
   const board = makeBoard();
-  const spec = buildPdfSpec(board, { title: "Sopa", subtitle: "animales", includeSolution: true });
+  const spec = buildPdfSpec(board, { title: "Sopa", includeSolution: true });
   assert.equal(spec.pages.length, 2);
   assert.equal(spec.pages[0].kind, "puzzle");
   assert.equal(spec.pages[1].kind, "solution");
@@ -71,25 +71,28 @@ test("board falsy → error", () => {
   assert.throws(() => buildPdfSpec({}), /obligatorios|board/);
 });
 
-test("filename incluye slug y fecha YYYYMMDD", () => {
+test("filename es sopa-YYYYMMDD.pdf, sin marca ni categoría", () => {
   const board = makeBoard();
   const spec = buildPdfSpec(board, {
-    subtitle: "Animales del Zoo",
     now: new Date("2026-06-09T12:00:00Z"),
   });
-  assert.equal(spec.meta.filename, "supeingo-sopa-animales-del-zoo-20260609.pdf");
+  assert.equal(spec.meta.filename, "sopa-20260609.pdf");
 });
 
 test("slugify normaliza acentos y espacios", () => {
+  // Utilidad exportada por si se reusa en futuro; ya no se usa en el
+  // filename (la profe genera mezclas multi-categoría y el slug daba
+  // pistas inconsistentes).
   assert.equal(slugify("Niños y árboles"), "ninos-y-arboles");
   assert.equal(slugify("PIÑA-tropical"), "pina-tropical");
   assert.equal(slugify("   "), "");
 });
 
-test("title compuesto incluye subtitle si existe", () => {
+test("title de la página es solo el title de options (sin categoría)", () => {
   const board = makeBoard();
-  const a = buildPdfSpec(board, { title: "Sopa de letras", subtitle: "animales" });
-  assert.match(a.pages[0].title, /Sopa de letras — animales/);
-  const b = buildPdfSpec(board, { title: "Sopa de letras" });
+  const a = buildPdfSpec(board, { title: "Sopa de letras" });
+  assert.equal(a.pages[0].title, "Sopa de letras");
+  // Default sin title pasado.
+  const b = buildPdfSpec(board, {});
   assert.equal(b.pages[0].title, "Sopa de letras");
 });

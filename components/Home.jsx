@@ -96,6 +96,30 @@ function Home({ onNav, helperOn, onSettings }) {
         />
       </div>
 
+      {/* Link discreto al modo profesor — solo lo notará un adulto.
+          El niño ve "Aprender" y "Jugar"; este texto chiquito al pie
+          queda fuera de su radar visual. */}
+      <div style={{
+        marginTop: "var(--space-7)",
+        textAlign: "center",
+        position: "relative", zIndex: 2,
+      }}>
+        <button
+          onClick={() => onNav("teacher")}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--ink-soft)",
+            fontSize: "calc(12px * var(--scale))",
+            textDecoration: "underline",
+            cursor: "pointer",
+            fontWeight: 600,
+            padding: 8,
+            opacity: 0.7,
+          }}
+        >Para profes: generar sopas en PDF</button>
+      </div>
+
     </div>
   );
 }
