@@ -76,12 +76,17 @@ components/
   PlayMenu.jsx        ← submenú de juegos
   WordBuilder.jsx     ← mecánica core (forma palabras con sílabas, sesión de 10)
   Settings.jsx        ← pantalla Ajustes (audio + tamaño + aprendizaje)
+  TeacherTools.jsx    ← Modo profesor: generador de sopas en PDF (acceso ?teacher=1)
   shared.jsx          ← Helper, HelperHint, speak() + warm-up TTS, helpers comunes
+lib/
+  wordsearch-generator.js ← lógica pura del generador de sopa (compartida con TeacherTools)
+  pdf-spec.js         ← construye la "spec" del PDF a partir del board
+  pdf-render.js       ← dibuja la spec con jsPDF (cargado lazy)
 styles/
   base.css            ← tokens de diseño (colores, escalas, paletas)
 data/
-  content.js          ← abecedario, palabras, familias silábicas
-tweaks-panel.jsx      ← panel de tweaks (toolbar in-page, oculto en producción)
+  dictionary.js, alphabet.js, words.js, guessWords.js, syllableFamilies.js
+tests/                ← suite con `node --test` (cero deps; jspdf opcional)
 ```
 
 ### Pipeline de imágenes (`assets/img/*.webp`)
@@ -181,6 +186,52 @@ Ideal para diseñar; **no es producción**. Carga inicial lenta porque Babel com
 - Banco de contenido (palabras, imágenes, sílabas) en ficheros JSON separados del código
 
 ---
+
+## 6.1 Modo profesor (PDF)
+
+Pensado para profes o padres que quieran preparar sopas de letras
+imprimibles ad-hoc. Acceso oculto del flujo del niño:
+
+- URL directa: `https://…/?teacher=1` (marcar como favorito).
+- Desde Ajustes (⚙ en Home): link discreto al final ("Modo profesor —
+  preparar sopas en PDF").
+
+Genera un PDF con:
+
+- Grid configurable de 7×7 a 20×20.
+- Pool del diccionario filtrable por categorías + textarea de palabras
+  propias.
+- 8 direcciones seleccionables (→ ← ↓ ↑ ↘ ↖ ↙ ↗) con presets "Fácil"
+  (→ ↓), "Clásica" (→ ↓ ↘ ↗) y "Todas las 8".
+- Hoja de soluciones opcional.
+- Botón "Descargar PDF" (universal) y "Compartir" (móvil HTTPS, vía
+  `navigator.share`).
+
+`jsPDF` se carga lazy desde CDN solo cuando se entra al modo profe,
+para no engordar el bundle del juego del niño.
+
+## 6.2 Tests
+
+Lógica pura testeada con `node --test` (Node 18+, cero deps):
+
+```bash
+node --test tests/*.test.js
+# o (con package.json):
+npm test
+```
+
+Cobertura:
+
+- `tests/wordsearch-generator.test.js`: determinismo, regresión
+  "ELEFANTE" (palabra anunciada que no estaba en el grid), banlist
+  limpia bajo 200 seeds y banlist ampliada x3, soporte de las 8
+  direcciones, casos límite, propiedades.
+- `tests/pdf-spec.test.js`: estructura del spec PDF, derivación de
+  posiciones from/to para las soluciones, slug + nombre de archivo.
+- `tests/pdf-render.test.js`: smoke test con jsPDF. Se salta si la
+  dep no está instalada (`npm i -D jspdf`).
+
+Las pruebas de UI viven en `tests/MANUAL.md` (checklist).
 
 ## 7. Audio
 

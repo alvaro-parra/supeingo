@@ -14,8 +14,17 @@ const HELP_HINTS = {
 
 function App() {
   const [settings, updateSettings] = useSettings();
-  const [route, setRoute] = useState("home");
-  const [prevRoute, setPrevRoute] = useState("home");
+  // Acceso oculto al "Modo profesor" vía ?teacher=1. Pensado para profes
+  // que marcan la URL como favorito y entran directamente al generador.
+  const initialRoute = (() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      if (qs.get("teacher") === "1") return "teacher";
+    } catch (_) {}
+    return "home";
+  })();
+  const [route, setRoute] = useState(initialRoute);
+  const [prevRoute, setPrevRoute] = useState(initialRoute);
 
   const goSettings = () => { setPrevRoute(route); setRoute("settings"); };
 
@@ -52,6 +61,15 @@ function App() {
     screen = <GuessWord onBack={() => setRoute("play")} debug={!!settings.debug}/>;
   } else if (route === "letters") {
     screen = <LetterHunt onBack={() => setRoute("play")} debug={!!settings.debug}/>;
+  } else if (route === "teacher") {
+    screen = <TeacherTools onBack={() => {
+      // Al salir, limpiamos el query para no quedar atrapados en el modo.
+      try {
+        const url = window.location.pathname;
+        window.history.replaceState({}, "", url);
+      } catch (_) {}
+      setRoute("home");
+    }} settings={settings}/>;
   }
 
   const showChrome = route !== "settings";

@@ -14,6 +14,7 @@
 
 # Node (por si en el futuro migras a Vite)
 node_modules/
+package-lock.json
 dist/
 build/
 npm-debug.log*

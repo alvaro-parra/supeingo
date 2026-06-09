@@ -343,6 +343,35 @@ function Settings({ settings, onChange, onDone, isFirstTime }) {
         </Field>
       </Section>
 
+      {/* Modo profesor — link discreto al generador de sopas en PDF.
+          Pensado para profes/padres que quieran preparar material
+          imprimible. No aparece en Home: la ruta es solo accesible
+          desde aquí o desde la URL `?teacher=1`. */}
+      {!isFirstTime && (
+        <div style={{
+          margin: "var(--space-2) var(--space-4) var(--space-5)",
+          textAlign: "center",
+          position: "relative", zIndex: 2,
+        }}>
+          <a
+            href="?teacher=1"
+            onClick={(e) => {
+              // Mantén la SPA: navega al query sin recargar.
+              e.preventDefault();
+              const url = window.location.pathname + "?teacher=1";
+              window.history.pushState({}, "", url);
+              window.location.assign(url);
+            }}
+            style={{
+              fontSize: "calc(13px * var(--scale))",
+              color: "var(--ink-soft)",
+              textDecoration: "underline",
+              fontWeight: 600,
+            }}
+          >Modo profesor — preparar sopas en PDF</a>
+        </div>
+      )}
+
       {/* Footer fijo — solo en la primera vez */}
       {isFirstTime && (
       <div style={{
@@ -1213,3 +1242,5 @@ window.Settings = Settings;
 window.useSettings = useSettings;
 window.applySettings = applySettings;
 window.loadSettings = loadSettings;
+// Helpers visuales reutilizables por TeacherTools.jsx.
+window.SettingsUI = { Section, Field, Toggle, selectStyle };

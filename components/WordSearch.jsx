@@ -11,46 +11,15 @@
 // la misma palabra al revés.
 //
 // Pool: animales del diccionario, len ≤ 8, sólo A–Z (sin Ñ ni tildes).
+//
+// La lógica pura del generador vive en `lib/wordsearch-generator.js`
+// (`window.SUPEINGO_WS`). Este componente sólo orquesta UI + estado.
 
 const WS_CATEGORIES = ["animales"];
 const WS_WORD_COUNT = 4;
+const WS_POOL_SIZE = 12;
 const WS_MAX_LEN = 8;
 const WS_GRID = { rows: 8, cols: 7 };
-
-// Direcciones de COLOCACIÓN — horizontal y vertical, sin diagonales.
-const WS_DIRS = [
-  { dr:  0, dc: 1 },  // →
-  { dr:  1, dc: 0 },  // ↓
-];
-
-// Direcciones para escaneo de malsonantes — las 8 (incluye invertidas).
-const WS_SCAN_DIRS = [
-  { dr:  0, dc:  1 }, { dr:  0, dc: -1 },
-  { dr:  1, dc:  0 }, { dr: -1, dc:  0 },
-  { dr:  1, dc:  1 }, { dr: -1, dc: -1 },
-  { dr:  1, dc: -1 }, { dr: -1, dc:  1 },
-];
-
-// Alfabeto de relleno — sin K, W (raras en español) ni Ñ/tildes
-// (las celdas representan letras del alfabeto enseñado).
-const WS_ALPHA = "ABCDEFGHIJLMNOPQRSTUVXYZ";
-
-// Palabras a evitar en el relleno aleatorio. Sólo se mutan letras
-// de relleno; nunca letras de palabras colocadas. Ampliable según
-// vayan apareciendo casos durante el playtest.
-const WS_BANNED = [
-  "PUTA","PUTO","PUTAS","PUTOS",
-  "MIERDA","CACA",
-  "CULO","CULOS",
-  "TETA","TETAS",
-  "POLLA","POLLAS",
-  "JODER","JODE",
-  "PEDO","PEDOS",
-  "FOLLA","FOLLAR",
-  "PIPI",
-  "PENE",
-  "VAGINA",
-];
 
 // CSS scoped al juego — keyframes que no están en base.css.
 (function _wsInjectStyles() {
@@ -66,194 +35,39 @@ const WS_BANNED = [
   document.head.appendChild(s);
 })();
 
-// ─── PRNG reproducible (Mulberry32) ───────────────────────────
-function _wsMakeRnd(seed) {
-  let s = seed | 0;
-  return () => {
-    s = (s + 0x6D2B79F5) | 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function _wsShuffle(arr, rnd) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// ─── Selección de palabras del diccionario ────────────────────
-function _wsPickWords(seed, opts) {
-  const cats = new Set(WS_CATEGORIES);
-  const hideScary = !!(opts && opts.hideScary);
-  const dict = (window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionary) || [];
-  const pool = dict.filter(e =>
-    (e.categories || []).some(c => cats.has(c))
-    && e.word.length >= 3
-    && e.word.length <= WS_MAX_LEN
-    && (e.image || e.emoji)
-    && /^[A-Z]+$/.test(e.word)
-    && !(hideScary && (e.tags || []).includes("miedo"))
-  );
-  const rnd = _wsMakeRnd(seed);
-  return _wsShuffle(pool, rnd).slice(0, WS_WORD_COUNT);
-}
-
-// ─── Generación del tablero ───────────────────────────────────
-function _wsGenerateBoard(nRows, nCols, words, seed) {
-  const rnd = _wsMakeRnd(seed);
-  const grid = Array.from({ length: nRows }, () => Array(nCols).fill(null));
-  const placements = [];
-
-  function tryPlace(word) {
-    const letters = word.split("");
-    const len = letters.length;
-    for (let i = 0; i < 500; i++) {
-      const dir = WS_DIRS[Math.floor(rnd() * WS_DIRS.length)];
-      const minR = dir.dr < 0 ? len - 1 : 0;
-      const maxR = dir.dr > 0 ? nRows - len : nRows - 1;
-      const minC = dir.dc < 0 ? len - 1 : 0;
-      const maxC = dir.dc > 0 ? nCols - len : nCols - 1;
-      if (minR > maxR || minC > maxC) continue;
-      const r0 = minR + Math.floor(rnd() * (maxR - minR + 1));
-      const c0 = minC + Math.floor(rnd() * (maxC - minC + 1));
-      let ok = true;
-      for (let k = 0; k < len; k++) {
-        const r = r0 + dir.dr * k;
-        const c = c0 + dir.dc * k;
-        if (grid[r][c] !== null && grid[r][c] !== letters[k]) { ok = false; break; }
-      }
-      if (!ok) continue;
-      for (let k = 0; k < len; k++) {
-        const r = r0 + dir.dr * k;
-        const c = c0 + dir.dc * k;
-        grid[r][c] = letters[k];
-      }
-      placements.push({ word, r0, c0, dir, len });
-      return true;
-    }
-    return false;
-  }
-
-  for (const w of words) tryPlace(w.word);
-
-  for (let r = 0; r < nRows; r++) {
-    for (let c = 0; c < nCols; c++) {
-      if (grid[r][c] === null) {
-        grid[r][c] = WS_ALPHA[Math.floor(rnd() * WS_ALPHA.length)];
-      }
-    }
-  }
-
-  _wsCleanBadWords(grid, placements, rnd);
-  return { grid, placements };
-}
-
-// Busca apariciones de WS_BANNED en las 8 direcciones y muta una
-// letra de relleno (no perteneciente a una palabra colocada) hasta
-// dejar la cuadrícula limpia.
-function _wsCleanBadWords(grid, placements, rnd) {
-  const nRows = grid.length;
-  const nCols = grid[0].length;
-  const placed = new Set();
-  for (const p of placements) {
-    for (let k = 0; k < p.len; k++) {
-      placed.add(`${p.r0 + p.dir.dr * k},${p.c0 + p.dir.dc * k}`);
-    }
-  }
-  for (let iter = 0; iter < 300; iter++) {
-    let hit = null;
-    outer:
-    for (let r = 0; r < nRows; r++) {
-      for (let c = 0; c < nCols; c++) {
-        for (const d of WS_SCAN_DIRS) {
-          for (const bad of WS_BANNED) {
-            const len = bad.length;
-            const r1 = r + d.dr * (len - 1);
-            const c1 = c + d.dc * (len - 1);
-            if (r1 < 0 || r1 >= nRows || c1 < 0 || c1 >= nCols) continue;
-            let match = true;
-            for (let k = 0; k < len; k++) {
-              if (grid[r + d.dr * k][c + d.dc * k] !== bad[k]) { match = false; break; }
-            }
-            if (match) { hit = { r, c, d, len, bad }; break outer; }
-          }
-        }
-      }
-    }
-    if (!hit) return;
-    const cands = [];
-    for (let k = 0; k < hit.len; k++) {
-      const rr = hit.r + hit.d.dr * k;
-      const cc = hit.c + hit.d.dc * k;
-      if (!placed.has(`${rr},${cc}`)) cands.push({ rr, cc });
-    }
-    if (cands.length === 0) break;
-    const pick = cands[Math.floor(rnd() * cands.length)];
-    const old = grid[pick.rr][pick.cc];
-    let neu = old;
-    for (let t = 0; t < 12 && neu === old; t++) {
-      neu = WS_ALPHA[Math.floor(rnd() * WS_ALPHA.length)];
-    }
-    grid[pick.rr][pick.cc] = neu;
-  }
-}
-
-// ─── Lógica de selección ──────────────────────────────────────
-// Línea recta exacta entre dos celdas en una de las 8 direcciones
-// (horizontal, vertical o diagonal perfecta |dr|=|dc|). Devuelve null
-// si el par no encaja en ninguna — así el highlight no rellena nada
-// raro cuando el arrastre va torcido.
-// Las colocaciones siguen siendo sólo → y ↓, así que una diagonal se
-// dibuja bonita pero la validación nunca la aceptará como acierto.
-function _wsLinePath(a, b) {
-  if (a.r === b.r && a.c === b.c) return [a];
-  const adr = Math.abs(b.r - a.r);
-  const adc = Math.abs(b.c - a.c);
-  if (a.r !== b.r && a.c !== b.c && adr !== adc) return null;
-  const dr = Math.sign(b.r - a.r);
-  const dc = Math.sign(b.c - a.c);
-  const len = Math.max(adr, adc);
-  const path = [];
-  for (let i = 0; i <= len; i++) path.push({ r: a.r + dr * i, c: a.c + dc * i });
-  return path;
-}
-
-function _wsValidatePath(start, end, board, foundSet) {
-  const path = _wsLinePath(start, end);
-  if (!path || path.length < 2) return null;
-  const a = path[0];
-  const b = path[path.length - 1];
-  for (const p of board.placements) {
-    if (foundSet.has(p.word)) continue;
-    if (path.length !== p.len) continue;
-    const pa = { r: p.r0, c: p.c0 };
-    const pb = {
-      r: p.r0 + p.dir.dr * (p.len - 1),
-      c: p.c0 + p.dir.dc * (p.len - 1),
-    };
-    const forward = a.r === pa.r && a.c === pa.c && b.r === pb.r && b.c === pb.c;
-    const reverse = a.r === pb.r && a.c === pb.c && b.r === pa.r && b.c === pa.c;
-    if (forward || reverse) return p;
-  }
-  return null;
-}
-
 // ─────────────────────────────────────────────────────────────
 // WordSearch — componente raíz del juego
 // ─────────────────────────────────────────────────────────────
 function WordSearch({ onBack, debug = false, hideScary = false }) {
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
-  const words = useMemo(() => _wsPickWords(seed, { hideScary }), [seed, hideScary]);
+  const candidates = useMemo(() => {
+    const dict = (window.SUPEINGO_CONTENT && window.SUPEINGO_CONTENT.dictionary) || [];
+    return window.SUPEINGO_WS.pickWords(dict, {
+      seed,
+      categories: WS_CATEGORIES,
+      hideScary,
+      minLen: 3,
+      maxLen: WS_MAX_LEN,
+      poolSize: WS_POOL_SIZE,
+      requireImage: true,
+      allowAccents: false,
+    });
+  }, [seed, hideScary]);
   const board = useMemo(
-    () => _wsGenerateBoard(WS_GRID.rows, WS_GRID.cols, words, seed + 1),
-    [words, seed]
+    () => window.SUPEINGO_WS.generateBoard({
+      rows: WS_GRID.rows,
+      cols: WS_GRID.cols,
+      candidates,
+      count: WS_WORD_COUNT,
+      dirs: window.SUPEINGO_WS.DIRS.EASY,
+      seed: seed + 1,
+    }),
+    [candidates, seed]
   );
+  // `words` son las realmente colocadas en la sopa (board.words), no
+  // las candidatas — así la lista visible nunca incluye una palabra
+  // que el generador no consiguió encajar.
+  const words = board.words;
   const [found, setFound] = useState(() => new Set());
   const [reveal, setReveal] = useState(null);
   const [confettiOn, setConfettiOn] = useState(false);
@@ -532,7 +346,7 @@ function WSLetterGrid({ board, found, onFound }) {
 
   const selCells = new Set();
   if (drag) {
-    const path = _wsLinePath(drag.start, drag.end);
+    const path = window.SUPEINGO_WS.linePath(drag.start, drag.end);
     if (path) for (const { r, c } of path) selCells.add(`${r},${c}`);
   }
 
@@ -578,12 +392,12 @@ function WSLetterGrid({ board, found, onFound }) {
       } else if (tapAnchor.r === upCell.r && tapAnchor.c === upCell.c) {
         setTapAnchor(null);
       } else {
-        const hit = _wsValidatePath(tapAnchor, upCell, board, found);
+        const hit = window.SUPEINGO_WS.validatePath(tapAnchor, upCell, board, found);
         if (hit) onFound(hit.word);
         setTapAnchor(null);
       }
     } else {
-      const hit = _wsValidatePath(drag.start, upCell, board, found);
+      const hit = window.SUPEINGO_WS.validatePath(drag.start, upCell, board, found);
       if (hit) onFound(hit.word);
       if (tapAnchor) setTapAnchor(null);
     }
