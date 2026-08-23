@@ -313,3 +313,5 @@ Para Pages con Vite necesitas:
    ```
 
 3. Settings → Pages → Source: **GitHub Actions**
+
+Validación del flujo de PR desde claude-safe.
