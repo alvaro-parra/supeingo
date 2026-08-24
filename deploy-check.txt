@@ -4,7 +4,7 @@ canario de despliegue — supeingo
 Este fichero no está enlazado desde ninguna página: los usuarios no lo ven.
 Existe solo para comprobar que un cambio mergeado a main llega de verdad a la web.
 
-marca: 2026-08-24-01
+marca: 2026-08-24-02
 
 Cómo se usa
 -----------
