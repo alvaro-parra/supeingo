@@ -1,0 +1,17 @@
+canario de despliegue — supeingo
+================================
+
+Este fichero no está enlazado desde ninguna página: los usuarios no lo ven.
+Existe solo para comprobar que un cambio mergeado a main llega de verdad a la web.
+
+marca: 2026-08-24-01
+
+Cómo se usa
+-----------
+1. Cambia la marca de arriba (por ejemplo a 2026-08-24-02).
+2. Mergea a main.
+3. Consulta https://alvaro-parra.github.io/supeingo/deploy-check.txt
+
+Si lees la marca NUEVA, el despliegue de Pages funciona.
+Si lees la VIEJA, el contenido está publicado pero el despliegue no se disparó.
+Si da 404, el fichero nunca llegó a publicarse.
